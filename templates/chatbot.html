@@ -1160,7 +1160,10 @@
             }
 
             const now = new Date();
-            const diff = Math.floor((now - date) / 1000);
+            const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+            // Debug log
+            console.log('Time diff (seconds):', diff, 'Date:', date.toISOString(), 'Now:', now.toISOString());
 
             // Handle future dates or very recent
             if (diff < 0) return 'Just now';
@@ -1172,17 +1175,31 @@
         }
 
         function parseTimestamp(timestamp) {
-            // Handle ISO strings without timezone (treat as local time)
+            // Handle null/undefined
             if (!timestamp) return null;
 
-            // If no timezone info, append local timezone
-            if (typeof timestamp === 'string' && !timestamp.includes('Z') && !timestamp.includes('+')) {
-                // Parse as local time by appending local timezone offset
-                const localDate = new Date(timestamp);
-                if (!isNaN(localDate.getTime())) {
-                    return localDate;
+            // If it's already a Date object
+            if (timestamp instanceof Date) return timestamp;
+
+            if (typeof timestamp === 'string') {
+                // Parse ISO string manually to ensure local time interpretation
+                // Format: 2025-12-31T16:30:00.123456 (without timezone)
+                const match = timestamp.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+                if (match) {
+                    const [_, year, month, day, hour, minute, second] = match;
+                    // Create date using local timezone
+                    return new Date(
+                        parseInt(year),
+                        parseInt(month) - 1, // Month is 0-indexed
+                        parseInt(day),
+                        parseInt(hour),
+                        parseInt(minute),
+                        parseInt(second)
+                    );
                 }
             }
+
+            // Fallback to standard Date parsing
             return new Date(timestamp);
         }
 
@@ -1425,6 +1442,9 @@
             const div = document.createElement('div');
             div.className = `flex gap-4 max-w-3xl mx-auto message-enter ${sender === 'user' ? 'justify-end' : ''}`;
 
+            // Convert markdown to HTML for AI messages
+            const content = sender === 'ai' ? formatAIMessage(html) : html;
+
             const bubble = sender === 'ai'
                 ? `bg-white dark:bg-dark-800 border border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-200 w-full rounded-2xl rounded-tl-sm p-6 shadow-sm`
                 : `bg-brand-600 text-white shadow-lg shadow-brand-600/20 rounded-3xl rounded-tr-sm px-6 py-3 font-medium`;
@@ -1436,11 +1456,53 @@
                 : ``; // User doesn't need an avatar next to bubble usually, or use your profile pic logic
 
             div.innerHTML = sender === 'ai'
-                ? `${avatar}<div class="${bubble} overflow-hidden leading-relaxed">${html}</div>`
-                : `<div class="${bubble}">${html}</div>`;
+                ? `${avatar}<div class="${bubble} overflow-hidden leading-relaxed ai-message-content">${content}</div>`
+                : `<div class="${bubble}">${content}</div>`;
 
             list.appendChild(div);
             document.getElementById('chat-container').scrollTo({ top: document.getElementById('chat-container').scrollHeight, behavior: 'smooth' });
+        }
+
+        // Convert markdown-style formatting to HTML for clean display
+        function formatAIMessage(text) {
+            if (!text) return '';
+
+            let formatted = text;
+
+            // Convert **bold** to <b>bold</b>
+            formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+
+            // Convert *italic* to <i>italic</i>
+            formatted = formatted.replace(/\*(.+?)\*/g, '<i>$1</i>');
+
+            // Convert markdown bullet points to HTML list
+            // Match lines starting with - or * followed by space
+            const bulletRegex = /^[\-\*]\s+(.+)$/gm;
+            const hasBullets = bulletRegex.test(formatted);
+            if (hasBullets) {
+                formatted = formatted.replace(/^[\-\*]\s+(.+)$/gm, '<li class="ml-4 mb-1">$1</li>');
+                // Wrap consecutive <li> elements in <ul>
+                formatted = formatted.replace(/(<li[^>]*>.*?<\/li>\s*)+/gs, '<ul class="list-disc list-inside my-3 space-y-1">$&</ul>');
+            }
+
+            // Convert numbered lists (1. 2. 3.)
+            const numberedRegex = /^\d+\.\s+(.+)$/gm;
+            if (numberedRegex.test(formatted)) {
+                formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-4 mb-1">$1</li>');
+                formatted = formatted.replace(/(<li[^>]*>.*?<\/li>\s*)+/gs, '<ol class="list-decimal list-inside my-3 space-y-1">$&</ol>');
+            }
+
+            // Convert line breaks (but not inside HTML tags)
+            // Double newlines become paragraph breaks
+            formatted = formatted.replace(/\n\n/g, '<br><br>');
+            // Single newlines become line breaks
+            formatted = formatted.replace(/\n/g, '<br>');
+
+            // Add styling for key metrics (numbers with units)
+            formatted = formatted.replace(/(\d+(?:\.\d+)?)\s*(kg|lbs|cm|inches|calories|kcal|g|mg|%)/gi,
+                '<span class="font-semibold text-brand-600 dark:text-brand-400">$1 $2</span>');
+
+            return formatted;
         }
 
         function showTyping() {
