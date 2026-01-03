@@ -735,59 +735,7 @@
         </div>
     </div>
 
-    <!-- Pathway Modal -->
-    <div id="pathway-modal"
-        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-800">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Your 30-Day Transformation</h2>
-                        <p class="text-gray-600 dark:text-gray-400" id="pathway-goal">Weight Loss Pathway</p>
-                    </div>
-                    <button onclick="closePathwayModal()"
-                        class="w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center">
-                        <i class="fas fa-times text-gray-500"></i>
-                    </button>
-                </div>
-            </div>
 
-            <div class="p-6">
-                <!-- Progress Overview -->
-                <div class="grid grid-cols-4 gap-4 mb-8">
-                    <div class="bg-brand-50 dark:bg-brand-900/20 p-4 rounded-xl text-center">
-                        <div class="text-2xl font-bold text-brand-600" id="pathway-day">1</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Day</div>
-                    </div>
-                    <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl text-center">
-                        <div class="text-2xl font-bold text-green-600" id="completed-days">0</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Completed</div>
-                    </div>
-                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl text-center">
-                        <div class="text-2xl font-bold text-blue-600" id="streak-days">0</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Streak</div>
-                    </div>
-                    <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl text-center">
-                        <div class="text-2xl font-bold text-purple-600" id="pathway-progress">0%</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Progress</div>
-                    </div>
-                </div>
-
-                <!-- Daily Plan -->
-                <div id="daily-plan-container">
-                    <!-- Filled by JavaScript -->
-                </div>
-
-                <!-- Weekly Milestones -->
-                <div class="mt-8">
-                    <h3 class="text-lg font-bold mb-4">Weekly Milestones</h3>
-                    <div id="milestones-container" class="space-y-3">
-                        <!-- Filled by JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script>
         // ================= CONFIGURATION =================
@@ -863,63 +811,7 @@
             setTimeout(() => modal.classList.add('hidden'), 200);
         }
 
-        // --- PATHWAY MODAL FUNCTIONS ---
-        async function openPathwayModal() {
-            const modal = document.getElementById('pathway-modal');
-            modal.classList.remove('hidden');
 
-            if (!currentUser) return;
-
-            try {
-                const response = await fetch('/get-todays-plan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: currentUser.uid })
-                });
-                const data = await response.json();
-
-                if (data.success && data.has_pathway) {
-                    // Update stats
-                    document.getElementById('pathway-day').textContent = data.day;
-                    document.getElementById('streak-days').textContent = data.streak || 0;
-
-                    // Update daily plan
-                    const plan = data.plan;
-                    document.getElementById('daily-plan-container').innerHTML = `
-                        <div class="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/30 dark:to-brand-800/20 rounded-xl p-5 border border-brand-200 dark:border-brand-800">
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <div class="text-xs font-bold text-brand-600 uppercase tracking-wider">Day ${data.day} Focus</div>
-                                    <h4 class="text-xl font-bold text-gray-900 dark:text-white mt-1">${plan.focus}</h4>
-                                </div>
-                                <span class="px-3 py-1 rounded-full text-xs font-bold ${plan.intensity === 'High' ? 'bg-red-100 text-red-700' : plan.intensity === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}">
-                                    ${plan.intensity}
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                <span><i class="fas fa-dumbbell text-brand-500 mr-1"></i> ${plan.workout_type}</span>
-                                <span><i class="fas fa-clock text-brand-500 mr-1"></i> ${plan.estimated_duration} mins</span>
-                            </div>
-                            ${plan.completed ? '<div class="mt-3 text-sm text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i> Completed!</div>' : ''}
-                        </div>
-                    `;
-                } else {
-                    document.getElementById('daily-plan-container').innerHTML = `
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-calendar-alt text-4xl mb-3 opacity-50"></i>
-                            <p>No active pathway found.</p>
-                            <p class="text-sm mt-2">Ask me to "Generate my plan" to get started!</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error loading pathway:', error);
-            }
-        }
-
-        function closePathwayModal() {
-            document.getElementById('pathway-modal').classList.add('hidden');
-        }
 
         // --- ✨ GEMINI RECIPE MODAL LOGIC ---
         function getRecipe(foodName) {
@@ -1216,6 +1108,15 @@
             document.getElementById('sidebar-name').innerText = profile.name || "User";
             document.getElementById('welcome-name').innerText = profile.name || "Friend";
 
+            // Update avatar for email users (who don't have photoURL from Google)
+            // Use the first letter of the user's name from their profile
+            if (currentUser && !currentUser.photoURL) {
+                const avatarEl = document.getElementById('sidebar-avatar');
+                const userName = profile.name || currentUser.displayName || currentUser.email || "User";
+                const firstLetter = userName.charAt(0).toUpperCase();
+                avatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLetter)}&background=e11d48&color=fff&bold=true&size=128`;
+            }
+
             // Level
             document.getElementById('sidebar-level').innerText = profile.fitness_level || "Beginner";
 
@@ -1272,67 +1173,14 @@
                     avatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=e11d48&color=fff&bold=true`;
                 }
 
+
                 await loadUserProfile(user.uid);
                 await loadConversations(); // Load chat history
                 await performMorningCheckin(user.uid);
-
-                // Load proactive suggestions every 5 minutes
-                setInterval(() => loadProactiveSuggestions(user.uid), 300000);
-
-                // Initial load after 10 seconds
-                setTimeout(() => loadProactiveSuggestions(user.uid), 10000);
             }
         });
 
-        async function loadProactiveSuggestions(userId) {
-            try {
-                const response = await fetch('/get-proactive-suggestions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
-                });
 
-                const data = await response.json();
-                if (data.success && data.suggestions.length > 0) {
-                    // Show proactive suggestion as a subtle notification
-                    showProactiveNotification(data.suggestions[0]);
-                }
-            } catch (error) {
-                console.error('Proactive suggestions error:', error);
-            }
-        }
-
-        function showProactiveNotification(message) {
-            // Create notification bubble
-            const notification = document.createElement('div');
-            notification.className = 'fixed bottom-24 right-6 bg-white dark:bg-gray-800 border-l-4 border-brand-500 shadow-xl rounded-lg p-4 max-w-sm z-40 animate-slide-up';
-            notification.innerHTML = `
-        <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-400 flex items-center justify-center">
-                <i class="fas fa-lightbulb"></i>
-            </div>
-            <div class="flex-1">
-                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">${message}</p>
-                <div class="flex gap-2 mt-2">
-                    <button onclick="handleSuggestionResponse(this, 'yes')" class="text-xs px-3 py-1 bg-brand-500 text-white rounded-full">Sure!</button>
-                    <button onclick="handleSuggestionResponse(this, 'later')" class="text-xs px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">Later</button>
-                </div>
-            </div>
-            <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
-
-            document.body.appendChild(notification);
-
-            // Auto-remove after 15 seconds
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.remove();
-                }
-            }, 15000);
-        }
 
         async function loadUserProfile(uid) {
             try {

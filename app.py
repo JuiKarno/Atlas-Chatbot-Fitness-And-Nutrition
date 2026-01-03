@@ -12,8 +12,6 @@ from core.recommender import ContentBasedRecommender
 from core.user_manager import UserManager
 from core.safety_validator import SafetyValidator
 from core.simple_memory import SimpleMemory
-from core.predictive_engine import PredictiveEngine
-from core.pathway_engine import PathwayEngine
 
 # Helpers
 from core.response_formatter import format_exercise_card, format_nutrition_card
@@ -195,8 +193,7 @@ def chat_endpoint():
         health_intents = [
             'fitness_request', 'fitness_variation',
             'nutrition_request', 'nutrition_variation',
-            'pathway_generation', 'explain_exercise',
-            'nutrition_recipe'
+            'explain_exercise', 'nutrition_recipe'
         ]
 
         # 3. CHECK PROFILE COMPLETENESS FOR HEALTH INTENTS
@@ -237,40 +234,7 @@ def chat_endpoint():
                     })
                 return jsonify({"reply": safety_msg, "session": session_data, "intent": "safety_block"})
 
-        # 4. PATHWAY HANDLER
-        if "generate my plan" in message.lower() or intent == 'pathway_generation':
-            pathway_engine = PathwayEngine(db_client)
-            pathway = pathway_engine.generate_30_day_pathway(profile)
 
-            if db_client:
-                db_client.collection('users').document(user_id).collection('pathways').document(
-                    pathway['pathway_id']).set(pathway)
-                db_client.collection('users').document(user_id).update({
-                    'active_pathway': pathway['pathway_id'],
-                    'pathway_start_date': pathway['start_date']
-                })
-
-            day_1 = pathway['daily_plan'][0]
-
-            response = f"""
-                <div class="bg-brand-50 dark:bg-brand-900/20 p-4 rounded-xl border border-brand-100 dark:border-brand-800">
-                    <h3 class="text-xl font-black text-brand-600 mb-2"><i class="fas fa-rocket"></i> 30-Day {pathway['goal']} Plan Ready!</h3>
-                    <p class="text-sm mb-4">I've designed a custom program for your <b>{pathway['level']}</b> level.</p>
-
-                    <div class="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm mb-3">
-                        <div class="text-xs font-bold text-slate-400 uppercase">Day 1 Focus</div>
-                        <div class="font-bold text-lg">{day_1['focus']}</div>
-                        <div class="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                           <i class="fas fa-dumbbell text-brand-500"></i> {day_1['workout_type']} ({day_1['estimated_duration']} mins)
-                        </div>
-                    </div>
-
-                    <button onclick="openPathwayModal()" class="w-full py-2 bg-brand-600 text-white rounded-lg font-bold text-sm hover:bg-brand-700 transition-colors">
-                        View Full Plan in Dashboard
-                    </button>
-                </div>
-            """
-            return jsonify({"reply": response, "session": session_data, "intent": "pathway_generation"})
 
         # 5. WORKOUT TABLE HANDLER - Weekly workout schedule with real data
         if intent == 'workout_table' or 'timetable' in message.lower() or 'schedule' in message.lower():
@@ -499,98 +463,6 @@ def chat_endpoint():
         print(f"Endpoint Error: {e}")
         return jsonify({"reply": "I'm having a brief brain freeze. Try again?", "session": {}}), 200
 
-
-@app.route('/get-proactive-suggestions', methods=['POST'])
-def get_proactive_suggestions():
-    try:
-        data = request.get_json()
-        user_id = data.get('user_id')
-        if not user_id: return jsonify({"success": False})
-
-        profile = user_manager.get_user(user_id) or {}
-        predictive_engine = PredictiveEngine(db_client)
-        # INTEGRATION POINT: This reads from DB logs
-        suggestions = predictive_engine.suggest_proactive_message(user_id, profile)
-
-        return jsonify({"success": True, "suggestions": suggestions[:2]})
-    except Exception as e:
-        return jsonify({"success": False, "suggestions": []})
-
-
-# Separate endpoint if triggered manually
-@app.route('/generate-pathway', methods=['POST'])
-def generate_pathway():
-    try:
-        data = request.get_json()
-        user_id = data.get('user_id')
-        if not user_id or not db_client: return jsonify({"success": False})
-
-        profile = user_manager.get_user(user_id) or {}
-        pathway_engine = PathwayEngine(db_client)
-        pathway = pathway_engine.generate_30_day_pathway(profile)
-
-        # SAVE TO DB
-        db_client.collection('users').document(user_id).collection('pathways').document(pathway['pathway_id']).set(
-            pathway)
-        db_client.collection('users').document(user_id).update({
-            'active_pathway': pathway['pathway_id'],
-            'pathway_start_date': pathway['start_date']
-        })
-
-        return jsonify({"success": True, "pathway": pathway})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-
-
-def calculate_streak(completed_days):
-    if not completed_days: return 0
-    sorted_days = sorted(completed_days)
-    streak = 1
-    for i in range(len(sorted_days) - 1, 0, -1):
-        if sorted_days[i] - 1 == sorted_days[i - 1]:
-            streak += 1
-        else:
-            break
-    return streak
-
-
-@app.route('/get-todays-plan', methods=['POST'])
-def get_todays_plan():
-    try:
-        data = request.get_json()
-        user_id = data.get('user_id')
-
-        if not db_client: return jsonify({"success": False, "error": "Database unavailable"})
-
-        user_doc = db_client.collection('users').document(user_id).get()
-        if not user_doc.exists: return jsonify({"success": False})
-
-        user_data = user_doc.to_dict()
-        pathway_id = user_data.get('active_pathway')
-        if not pathway_id: return jsonify({"success": False, "has_pathway": False})
-
-        pathway_doc = db_client.collection('users').document(user_id).collection('pathways').document(pathway_id).get()
-        pathway = pathway_doc.to_dict()
-
-        start_date = datetime.fromisoformat(pathway['start_date'])
-        day_number = (datetime.now().date() - start_date.date()).days + 1
-
-        if day_number < 1 or day_number > 30:
-            return jsonify({"success": False, "error": "Pathway ended"})
-
-        todays_plan = pathway['daily_plan'][day_number - 1]
-        completed_days = user_data.get('completed_pathway_days', [])
-        todays_plan['completed'] = day_number in completed_days
-
-        return jsonify({
-            "success": True,
-            "has_pathway": True,
-            "day": day_number,
-            "plan": todays_plan,
-            "streak": calculate_streak(completed_days)
-        })
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
 
 
 # ============================================

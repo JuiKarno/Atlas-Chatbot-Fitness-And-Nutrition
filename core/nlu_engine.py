@@ -30,15 +30,11 @@ class SmartNLUEngine:
            - "What is my BMI?", "What weight should I target?", "How many calories?" → `general_chat`
            - Questions asking for calculation, explanation, or advice → `general_chat`
         
-        3. **PATHWAY GENERATION (Only when EXPLICITLY requested)**
-           - ONLY if user says "generate my plan", "create a plan", "make me a 30-day plan", "build my program" → `pathway_generation`
-           - DO NOT classify questions or advice requests as pathway_generation!
-        
-        4. **REQUEST DETECTION (Check AFTER above)**
+        3. **REQUEST DETECTION (Check AFTER above)**
            - If message asks to "give me", "suggest", "recommend", "show me", "what should I" → recommendation intent
            - If message has a question about how to do something → `explain_exercise`
         
-        5. **FALLBACK** → Use other intents below
+        4. **FALLBACK** → Use other intents below
 
         ### INTENT LIST (Pick ONE)
         - 'add_preference': User states what they LIKE. Keywords: "I like", "I love", "I prefer", "I enjoy"
@@ -51,7 +47,6 @@ class SmartNLUEngine:
         - 'fitness_variation': User wants a DIFFERENT exercise ("give me another", "something else").
         - 'nutrition_variation': User wants DIFFERENT food ("show me other options").
         - 'explain_exercise': User asks for instructions ("how to do X").
-        - 'pathway_generation': User EXPLICITLY asks for a long-term plan to be created. Keywords: "generate my plan", "create a program".
         - 'workout_table': User wants a WEEKLY WORKOUT TABLE/TIMETABLE/SCHEDULE. Keywords: "timetable", "schedule", "weekly plan", "5 days workout".
         - 'out_of_scope': NON-FITNESS topics OR GIBBERISH.
 
@@ -62,11 +57,6 @@ class SmartNLUEngine:
         - "I want to ask about my BMI if I want to target normal" → {"intent": "general_chat", "entities": {}}
         - "What are macros?" → {"intent": "general_chat", "entities": {}}
         - "How do I lose weight?" → {"intent": "general_chat", "entities": {}}
-        
-        ### PATHWAY EXAMPLES (These ARE pathway_generation - 30-day programs)
-        - "Generate my plan" → {"intent": "pathway_generation", "entities": {}}
-        - "Create a 30-day workout program for me" → {"intent": "pathway_generation", "entities": {}}
-        - "Build me a training plan" → {"intent": "pathway_generation", "entities": {}}
         
         ### WORKOUT TABLE EXAMPLES (These ARE workout_table - weekly schedules)
         - "Make me a weekly workout table" → {"intent": "workout_table", "entities": {"workout_days": 5, "rest_days": 2}}
