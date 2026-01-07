@@ -14,7 +14,14 @@ from core.safety_validator import SafetyValidator
 from core.simple_memory import SimpleMemory
 
 # Helpers
-from core.response_formatter import format_exercise_card, format_nutrition_card
+from core.response_formatter import (
+    format_exercise_card, 
+    format_nutrition_card,
+    format_log_confirmation,
+    format_weight_report,
+    format_nutrition_report,
+    format_workout_history
+)
 from core.calculator import calculate_bmi, calculate_target_calories
 
 # --- FIREBASE INIT ---
@@ -34,7 +41,10 @@ CORS(app)
 # --- ENGINE INIT ---
 nlu = SmartNLUEngine()
 recommender = ContentBasedRecommender()
-user_manager = UserManager(db_client)
+# UserManager expects key_path, not db_client - let it initialize its own connection
+key_path = Config.FIREBASE_CREDENTIALS if hasattr(Config, 'FIREBASE_CREDENTIALS') else 'serviceAccountKey.json'
+user_manager = UserManager(key_path)
+
 
 
 # --- ROUTES ---
@@ -131,6 +141,73 @@ def generate_recipe_endpoint():
         return jsonify({"success": False, "error": "Chef is busy!"}), 500
 
 
+@app.route('/feedback', methods=['POST'])
+def handle_feedback():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        item_data = data.get('item_data')
+        rating = data.get('rating') # 'good' or 'bad'
+        item_type = data.get('item_type', 'exercise')
+
+        if not user_id or not item_data or not rating:
+            return jsonify({"success": False, "error": "Missing data"}), 400
+
+        item_name = item_data.get('Title') or item_data.get('Name')
+
+        if rating == 'good':
+            # Save to favorites
+            success = user_manager.add_favorite(user_id, item_data, item_type)
+            msg = f"Saved {item_name} to your favorites!"
+        else:
+            # Add to permanent ignore list
+            success = user_manager.add_to_ignore_list(user_id, item_name)
+            msg = f"Understood. I'll stop recommending {item_name}."
+
+        return jsonify({"success": success, "message": msg})
+    except Exception as e:
+        print(f"Feedback Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/favorites', methods=['GET'])
+def get_favorites():
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({"success": False, "error": "No user ID"}), 400
+
+        favorites = user_manager.get_favorites(user_id)
+        return jsonify({"success": True, "favorites": favorites})
+    except Exception as e:
+        print(f"Get Favorites Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/log-data', methods=['POST'])
+def log_data():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        log_type = data.get('type') # 'weight', 'nutrition'
+        payload = data.get('data')
+
+        if not user_id or not log_type or not payload:
+            return jsonify({"success": False, "error": "Missing data"}), 400
+
+        if log_type == 'weight':
+            success = user_manager.log_weight(user_id, payload.get('weight'))
+        elif log_type == 'nutrition':
+            success = user_manager.log_nutrition(user_id, payload)
+        else:
+            return jsonify({"success": False, "error": "Invalid log type"}), 400
+
+        return jsonify({"success": success})
+    except Exception as e:
+        print(f"Log Data Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route('/get-recommendation', methods=['POST'])
 def chat_endpoint():
     try:
@@ -167,27 +244,29 @@ def chat_endpoint():
         # Merge singular and list preferences
         if pref_item: pref_list.append(pref_item)
 
-        # Process Likes
-        if intent == 'add_preference':
-            for item in pref_list:
-                clean_item = item.lower().strip()
-                if clean_item not in likes: likes.append(clean_item)
-                if clean_item in dislikes: dislikes.remove(clean_item)
+        # ALWAYS process preferences from entities (for compound messages like "I like X, give me workout")
+        for item in pref_list:
+            clean_item = item.lower().strip()
+            if clean_item and clean_item not in likes:
+                likes.append(clean_item)
+            if clean_item in dislikes:
+                dislikes.remove(clean_item)
 
-        # Process Dislikes
-        elif intent == 'add_dislike':
-            # Also check the singular pref_item here if intent matches
-            if pref_item: dislike_list.append(pref_item)
+        # ALWAYS process dislikes from entities (for compound messages like "I hate X, suggest workout")
+        for item in dislike_list:
+            clean_item = item.lower().strip()
+            if clean_item and clean_item not in dislikes:
+                dislikes.append(clean_item)
+            if clean_item in likes:
+                likes.remove(clean_item)
 
-            for item in dislike_list:
-                clean_item = item.lower().strip()
-                if clean_item not in dislikes: dislikes.append(clean_item)
-                if clean_item in likes: likes.remove(clean_item)
-
-        # Clear Preferences
-        elif intent == 'clear_preferences':
+        # Clear Preferences (only when explicitly requested)
+        if intent == 'clear_preferences':
             likes = []
             dislikes = []
+
+        # Debug log to verify preferences are being captured
+        print(f"[App] After processing - Likes: {likes}, Dislikes: {dislikes}")
 
         # Define health-related intents that require profile access
         health_intents = [
@@ -195,6 +274,9 @@ def chat_endpoint():
             'nutrition_request', 'nutrition_variation',
             'explain_exercise', 'nutrition_recipe'
         ]
+        
+        # Progress tracking intents (don't require full profile)
+        progress_intents = ['log_weight', 'log_nutrition', 'log_workout', 'view_progress']
 
         # 3. CHECK PROFILE COMPLETENESS FOR HEALTH INTENTS
         if intent in health_intents:
@@ -233,6 +315,180 @@ def chat_endpoint():
                         'timestamp': datetime.now(), 'intent': 'safety_block', 'user_message': message
                     })
                 return jsonify({"reply": safety_msg, "session": session_data, "intent": "safety_block"})
+
+        # ============================================
+        # PROGRESS TRACKING HANDLERS
+        # ============================================
+
+        # 5a. LOG WEIGHT HANDLER
+        if intent == 'log_weight':
+            weight = entities.get('weight')
+            ask_bmi = entities.get('ask_bmi', False)
+            
+            if weight:
+                try:
+                    weight = float(weight)
+                    result = user_manager.add_weight_log(user_id, weight)
+                    
+                    if result:
+                        # If user also asked for BMI, calculate and include it
+                        if ask_bmi and profile.get('height'):
+                            height_m = float(profile.get('height')) / 100
+                            new_bmi = weight / (height_m * height_m)
+                            bmi_category = ""
+                            if new_bmi < 18.5:
+                                bmi_category = "Underweight"
+                                cat_color = "text-blue-600 bg-blue-100"
+                            elif new_bmi < 25:
+                                bmi_category = "Normal"
+                                cat_color = "text-green-600 bg-green-100"
+                            elif new_bmi < 30:
+                                bmi_category = "Overweight"
+                                cat_color = "text-orange-600 bg-orange-100"
+                            else:
+                                bmi_category = "Obese"
+                                cat_color = "text-red-600 bg-red-100"
+                            
+                            response = f"""
+                            <div class="bg-emerald-50 dark:bg-emerald-900/20 p-5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                        <i class="fas fa-check text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-emerald-700 dark:text-emerald-300">Weight Updated!</h4>
+                                        <p class="text-sm text-emerald-600 dark:text-emerald-400">Your weight has been logged as <b>{weight} kg</b></p>
+                                    </div>
+                                </div>
+                                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-emerald-100 dark:border-slate-700">
+                                    <div class="text-xs font-bold text-slate-400 uppercase mb-1">Your Current BMI</div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-3xl font-black text-slate-800 dark:text-white">{new_bmi:.1f}</span>
+                                        <span class="px-3 py-1 rounded-lg text-sm font-bold {cat_color}">{bmi_category}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            """
+                        else:
+                            response = format_log_confirmation('weight', result)
+                        
+                        return jsonify({"reply": response, "session": session_data, "intent": "log_weight"})
+                except (ValueError, TypeError):
+                    pass
+            
+            # If weight not extracted, ask for it
+            response = """
+            <div class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                <h4 class="font-bold text-emerald-700 dark:text-emerald-300 mb-2"><i class="fas fa-weight"></i> Log Your Weight</h4>
+                <p class="text-sm text-emerald-600 dark:text-emerald-400">Please tell me your current weight, like <b>"I weigh 75kg"</b> or <b>"My weight is 68.5 kg"</b></p>
+            </div>
+            """
+            return jsonify({"reply": response, "session": session_data, "intent": "log_weight"})
+
+
+        # 5b. LOG NUTRITION HANDLER
+        if intent == 'log_nutrition':
+            calories = entities.get('calories')
+            protein = entities.get('protein')
+            carbs = entities.get('carbs')
+            fat = entities.get('fat')
+            
+            # Convert to numbers if provided
+            try:
+                calories = float(calories) if calories else None
+                protein = float(protein) if protein else None
+                carbs = float(carbs) if carbs else None
+                fat = float(fat) if fat else None
+            except (ValueError, TypeError):
+                calories = protein = carbs = fat = None
+            
+            if any([calories, protein, carbs, fat]):
+                result = user_manager.add_nutrition_log(user_id, calories, protein, carbs, fat)
+                if result:
+                    # Build logged data for confirmation
+                    logged_data = {}
+                    if calories: logged_data['calories'] = int(calories)
+                    if protein: logged_data['protein'] = int(protein)
+                    if carbs: logged_data['carbs'] = int(carbs)
+                    if fat: logged_data['fat'] = int(fat)
+                    
+                    response = format_log_confirmation('nutrition', logged_data)
+                    return jsonify({"reply": response, "session": session_data, "intent": "log_nutrition"})
+            
+            # If nothing extracted, ask for details
+            response = """
+            <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
+                <h4 class="font-bold text-amber-700 dark:text-amber-300 mb-2"><i class="fas fa-utensils"></i> Log Your Nutrition</h4>
+                <p class="text-sm text-amber-600 dark:text-amber-400 mb-2">Tell me what you ate! Examples:</p>
+                <ul class="text-sm text-amber-600 dark:text-amber-400 space-y-1">
+                    <li>• "I ate 500 calories"</li>
+                    <li>• "Log 40g protein and 300 calories"</li>
+                    <li>• "Had 50g carbs and 20g fat"</li>
+                </ul>
+            </div>
+            """
+            return jsonify({"reply": response, "session": session_data, "intent": "log_nutrition"})
+
+        # 5c. LOG WORKOUT HANDLER
+        if intent == 'log_workout':
+            workout_name = entities.get('workout_name', 'General')
+            exercises = entities.get('exercises', [])
+            duration = entities.get('duration')
+            
+            result = user_manager.add_workout_log(user_id, workout_name, exercises, duration)
+            if result:
+                response = format_log_confirmation('workout', {'workout_name': workout_name})
+                return jsonify({"reply": response, "session": session_data, "intent": "log_workout"})
+            
+            # Fallback
+            response = """
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                <h4 class="font-bold text-blue-700 dark:text-blue-300 mb-2"><i class="fas fa-dumbbell"></i> Workout Logged!</h4>
+                <p class="text-sm text-blue-600 dark:text-blue-400">Great job completing your workout! 💪</p>
+            </div>
+            """
+            return jsonify({"reply": response, "session": session_data, "intent": "log_workout"})
+
+        # 5d. VIEW PROGRESS HANDLER
+        if intent == 'view_progress':
+            progress_type = entities.get('progress_type', 'all')
+            
+            if progress_type == 'weight' or progress_type == 'all':
+                logs = user_manager.get_weight_logs(user_id, days=7)
+                current_weight = profile.get('weight', 0)
+                current_bmi = profile.get('bmi')
+                response = format_weight_report(logs, current_weight, current_bmi)
+                return jsonify({"reply": response, "session": session_data, "intent": "view_progress"})
+            
+            elif progress_type == 'nutrition':
+                today_data = user_manager.get_today_nutrition(user_id)
+                # Calculate target calories if profile has data
+                target_calories = 2000
+                if profile.get('weight') and profile.get('height') and profile.get('age'):
+                    target_calories = calculate_target_calories(
+                        profile.get('weight'),
+                        profile.get('height'),
+                        profile.get('age'),
+                        profile.get('gender', 'Male'),
+                        profile.get('activity_level', 'Moderate'),
+                        profile.get('goal', 'Maintain')
+                    )
+                response = format_nutrition_report(today_data, target_calories)
+                return jsonify({"reply": response, "session": session_data, "intent": "view_progress"})
+            
+            elif progress_type == 'workout':
+                logs = user_manager.get_workout_logs(user_id, days=7)
+                response = format_workout_history(logs)
+                return jsonify({"reply": response, "session": session_data, "intent": "view_progress"})
+            
+            # Default: show weight progress
+            logs = user_manager.get_weight_logs(user_id, days=7)
+            current_weight = profile.get('weight', 0)
+            current_bmi = profile.get('bmi')
+            response = format_weight_report(logs, current_weight, current_bmi)
+            return jsonify({"reply": response, "session": session_data, "intent": "view_progress"})
+
+
 
 
 

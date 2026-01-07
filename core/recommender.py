@@ -11,6 +11,14 @@ class ContentBasedRecommender:
     def __init__(self):
         # Assumes firebase_admin is initialized externally
         self.db = firestore.client()
+        
+        # Gold Standards for Effectiveness
+        self.GOLD_STANDARDS = {
+            'Muscle Gain': ['Squats', 'Deadlifts', 'Bench Press', 'High Protein', 'Protein', 'Strength', 'Hypertrophy'],
+            'Weight Loss': ['HIIT', 'Burpees', 'Lean Protein', 'Fiber-rich', 'Cardio', 'Metabolic', 'Calorie Burn'],
+            'Weight Gain': ['High Protein', 'Bulking', 'Compound lifts'],
+            'Maintenance': ['Balanced', 'General', 'Steady state']
+        }
 
     def _get_smart_protocol(self, user_profile, exercise_level):
         """Generates Sets/Reps string based on User Goal."""
@@ -87,9 +95,13 @@ class ContentBasedRecommender:
         for doc in docs:
             d = doc.to_dict()
             title = str(d.get('Title', '')).strip().lower()
+            equipment = str(d.get('Equipment', '')).strip().lower()
+            desc = str(d.get('Desc', '')).strip().lower()
+            ex_type = str(d.get('Type', '')).strip().lower()
 
-            # --- DISLIKE FILTER ---
-            if any(bad in title for bad in clean_dislikes):
+            # --- DISLIKE FILTER (check title, equipment, type, and description) ---
+            searchable_text = f"{title} {equipment} {ex_type} {desc}"
+            if any(bad in searchable_text for bad in clean_dislikes):
                 continue
 
             if title and title not in clean_ignore_list:
@@ -102,15 +114,20 @@ class ContentBasedRecommender:
             for doc in docs:
                 d = doc.to_dict()
                 title = str(d.get('Title', '')).strip().lower()
+                equipment = str(d.get('Equipment', '')).strip().lower()
+                desc = str(d.get('Desc', '')).strip().lower()
+                ex_type = str(d.get('Type', '')).strip().lower()
                 current_titles = [str(c.get('Title', '')).strip().lower() for c in candidates]
 
-                # Dislike Filter again
-                if any(bad in title for bad in clean_dislikes): continue
+                # Dislike Filter again (check all fields)
+                searchable_text = f"{title} {equipment} {ex_type} {desc}"
+                if any(bad in searchable_text for bad in clean_dislikes): continue
 
                 if title and title not in clean_ignore_list and title not in current_titles:
                     candidates.append(d)
 
         return candidates
+
 
     def _get_fitness_recs(self, user_profile, target, clean_ignore_list, top_k=3, likes=[], dislikes=[]):
         try:
@@ -145,11 +162,17 @@ class ContentBasedRecommender:
                 random.shuffle(all_docs)
                 for d in all_docs:
                     title_norm = str(d.get('Title', '')).strip().lower()
-                    if any(bad in title_norm for bad in dislikes): continue
+                    equipment = str(d.get('Equipment', '')).strip().lower()
+                    desc = str(d.get('Desc', '')).strip().lower()
+                    ex_type = str(d.get('Type', '')).strip().lower()
+                    searchable_text = f"{title_norm} {equipment} {ex_type} {desc}"
+                    
+                    if any(bad in searchable_text for bad in dislikes): continue
                     if title_norm not in seen_titles:
                         candidates.append(d)
                         seen_titles.add(title_norm)
                         if len(candidates) >= top_k + 5: break
+
 
             if not candidates: return []
 
@@ -166,14 +189,42 @@ class ContentBasedRecommender:
                 user_vec = tfidf.transform([user_query])
                 base_scores = cosine_similarity(user_vec, tfidf_matrix).flatten()
 
-                # --- APPLY PREFERENCE BOOST ---
+                # --- NEW SCORING LOGIC (Effectiveness vs Preference) ---
+                user_goal = user_profile.get('goal', 'Maintenance')
+                gold_standards = []
+                for goal_key, keywords in self.GOLD_STANDARDS.items():
+                    if goal_key in user_goal:
+                        gold_standards.extend(keywords)
+
                 final_scores = []
-                for idx, score in enumerate(base_scores):
-                    title = str(df.iloc[idx].get('Title', '')).lower()
-                    boost = 0
-                    if any(good in title for good in likes):
-                        boost = 0.2  # 20% boost for liked keywords
-                    final_scores.append(score + boost)
+                for idx, cosine_score in enumerate(base_scores):
+                    row = df.iloc[idx]
+                    title = str(row.get('Title', '')).lower()
+                    desc = str(row.get('Desc', '')).lower()
+                    bodypart = str(row.get('Bodypart', '')).lower()
+                    
+                    combined_text = f"{title} {desc} {bodypart}"
+
+                    # 1. Calculate Effectiveness Score (0 to 1)
+                    # Count how many Gold Standard keywords match
+                    match_count = sum(1 for ks in gold_standards if ks.lower() in combined_text)
+                    # Normalize: 0 to 1 (capped at 3 matches for max effectiveness)
+                    effectiveness = min(1.0, match_count / 3.0) 
+                    
+                    # Gold Standard Boost (Even if not liked)
+                    if match_count > 0:
+                        effectiveness += 0.4 
+                    effectiveness = min(1.0, effectiveness)
+
+                    # 2. Calculate Preference Score (0 to 1)
+                    # Cosine score is our baseline preference from TF-IDF query
+                    # Additionally boost if user specifically "liked" this item
+                    preference_boost = 0.3 if any(good in title for good in likes) else 0
+                    user_pref = min(1.0, cosine_score + preference_boost)
+
+                    # 3. Final Formula: (Eff * 0.7) + (Pref * 0.3)
+                    final_score = (effectiveness * 0.7) + (user_pref * 0.3)
+                    final_scores.append(final_score)
 
                 df['score'] = final_scores
                 df = df.sort_values(by='score', ascending=False)
@@ -265,14 +316,41 @@ class ContentBasedRecommender:
                 user_vec = tfidf.transform([user_query])
                 base_scores = cosine_similarity(user_vec, tfidf_matrix).flatten()
 
-                # --- APPLY PREFERENCE BOOST ---
+                # --- NEW SCORING LOGIC (Nutrition) ---
+                user_goal = user_profile.get('goal', 'Maintenance')
+                gold_standards = []
+                for goal_key, keywords in self.GOLD_STANDARDS.items():
+                    if goal_key in user_goal:
+                        gold_standards.extend(keywords)
+
                 final_scores = []
-                for idx, score in enumerate(base_scores):
-                    name = str(df.iloc[idx].get('Name', '')).lower()
-                    boost = 0
-                    if any(good in name for good in likes):
-                        boost = 0.2
-                    final_scores.append(score + boost)
+                for idx, cosine_score in enumerate(base_scores):
+                    row = df.iloc[idx]
+                    name = str(row.get('Name', '')).lower()
+                    cat = str(row.get('Category', '')).lower()
+                    
+                    combined_text = f"{name} {cat}"
+
+                    # 1. Effectiveness Score
+                    match_count = sum(1 for ks in gold_standards if ks.lower() in combined_text)
+                    # Special check for macros if available in gold standards logic
+                    if 'High Protein' in gold_standards and int(row.get('Protein', 0)) > 20: match_count += 2
+                    if 'Fiber-rich' in gold_standards and 'Salad' in cat: match_count += 1
+                    
+                    effectiveness = min(1.0, match_count / 3.0)
+                    
+                    # Gold Standard Boost
+                    if match_count > 0:
+                        effectiveness += 0.4
+                    effectiveness = min(1.0, effectiveness)
+
+                    # 2. Preference Score
+                    preference_boost = 0.3 if any(good in name for good in likes) else 0
+                    user_pref = min(1.0, cosine_score + preference_boost)
+
+                    # 3. Final Formula
+                    final_score = (effectiveness * 0.7) + (user_pref * 0.3)
+                    final_scores.append(final_score)
 
                 df['score'] = final_scores
                 df = df.sort_values(by='score', ascending=False)

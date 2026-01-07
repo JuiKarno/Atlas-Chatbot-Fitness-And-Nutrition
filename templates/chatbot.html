@@ -524,6 +524,12 @@
 
             <!-- Messages List -->
             <div id="messages-list" class="space-y-6 relative z-10 pb-24 max-w-3xl mx-auto"></div>
+
+            <!-- Scroll to Bottom Button -->
+            <button id="scroll-to-bottom" onclick="scrollToBottom()"
+                class="fixed bottom-32 right-6 md:right-10 w-12 h-12 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-lg shadow-brand-500/30 flex items-center justify-center transition-all transform translate-y-20 opacity-0 pointer-events-none z-40 hover:scale-110">
+                <i class="fas fa-arrow-down text-lg"></i>
+            </button>
         </div>
 
         <!-- Input Area -->
@@ -543,7 +549,7 @@
                 </button>
             </form>
             <p class="text-center text-[10px] text-slate-400 mt-3 font-semibold tracking-wide uppercase opacity-70">
-                AI can make mistakes • Consult a doctor before starting
+                Atlas can make mistakes • Consult a health expert before starting
             </p>
         </div>
     </main>
@@ -552,24 +558,30 @@
     <div id="recipe-modal"
         class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-all opacity-0">
         <div
-            class="bg-white dark:bg-dark-800 rounded-[2rem] w-full max-w-xl p-8 shadow-2xl transform scale-95 transition-all border border-slate-100 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
+            class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-xl shadow-2xl transform scale-95 transition-all border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div
+                class="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-brand-50 to-amber-50 dark:from-slate-800 dark:to-slate-800">
                 <div class="flex items-center gap-3">
                     <div
-                        class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl shadow-sm">
+                        class="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-lg">
                         <i class="fas fa-utensils"></i>
                     </div>
-                    <h2 class="text-2xl font-black text-slate-900 dark:text-white">AI Chef</h2>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800 dark:text-white">Atlas Chef</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">AI-Powered Recipes</p>
+                    </div>
                 </div>
                 <button onclick="closeRecipeModal()"
-                    class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-brand-600 transition-colors flex items-center justify-center"><i
+                    class="w-10 h-10 rounded-full bg-white dark:bg-slate-700 text-slate-400 hover:text-brand-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-all flex items-center justify-center shadow-sm border border-slate-200 dark:border-slate-600"><i
                         class="fas fa-times"></i></button>
             </div>
 
-            <div id="recipe-content" class="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300">
+            <!-- Recipe Content (Scrollable) -->
+            <div id="recipe-content" class="flex-1 overflow-y-auto">
                 <!-- Recipe Loaded Here -->
-                <div class="flex flex-col items-center justify-center py-10">
-                    <div class="w-10 h-10 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+                <div class="flex flex-col items-center justify-center py-16">
+                    <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
                     <p class="mt-4 text-sm font-bold text-slate-400">Cooking up your recipe...</p>
                 </div>
             </div>
@@ -620,6 +632,25 @@
                         class="fas fa-times"></i></button>
             </div>
             <form id="profile-form" onsubmit="handleProfileUpdate(event)" class="space-y-6">
+
+                <!-- Profile Photo Upload -->
+                <div class="flex flex-col items-center mb-6">
+                    <div class="relative group">
+                        <div id="profile-photo-preview"
+                            class="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border-4 border-slate-200 dark:border-slate-600 shadow-lg">
+                            <span id="profile-photo-initial"
+                                class="text-3xl font-black text-slate-400 dark:text-slate-500">?</span>
+                            <img id="profile-photo-img" src="" class="hidden w-full h-full object-cover">
+                        </div>
+                        <label for="profile-photo-input"
+                            class="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center">
+                            <i class="fas fa-camera text-white text-xl"></i>
+                        </label>
+                        <input type="file" id="profile-photo-input" accept="image/*" class="hidden"
+                            onchange="handlePhotoSelect(event)">
+                    </div>
+                    <p class="text-xs text-slate-400 mt-2">Click to upload photo</p>
+                </div>
 
                 <!-- Name & Age -->
                 <div class="grid grid-cols-3 gap-4">
@@ -786,6 +817,33 @@
             document.getElementById('sidebar').classList.toggle('-translate-x-full');
         }
 
+        // Scroll to bottom of chat
+        function scrollToBottom() {
+            const container = document.getElementById('chat-container');
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll-to-bottom button based on scroll position
+        function updateScrollButton() {
+            const container = document.getElementById('chat-container');
+            const button = document.getElementById('scroll-to-bottom');
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+
+            if (isNearBottom) {
+                button.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            } else {
+                button.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }
+        }
+
+        // Add scroll listener after DOM loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('chat-container');
+            if (container) {
+                container.addEventListener('scroll', updateScrollButton);
+            }
+        });
+
         function toggleDarkMode() {
             const isDark = document.getElementById('dark-mode-toggle').checked;
             if (isDark) document.documentElement.classList.add('dark');
@@ -943,9 +1001,21 @@
 
                 if (data.success) {
                     currentConversationId = data.conversation.id;
+
+                    // Reset chat UI to first login state
                     document.getElementById('messages-list').innerHTML = '';
                     backendSession = {};
+
+                    // Show welcome screen
                     document.getElementById('welcome-screen').classList.remove('hidden');
+
+                    // Hide active suggestions bar (the mini pills above input)
+                    document.getElementById('active-suggestions').classList.add('hidden');
+
+                    // Render initial suggestion grid on welcome screen (if profile complete)
+                    if (isProfileComplete) {
+                        renderSuggestions('initial');
+                    }
 
                     // Add to list and re-render
                     conversationsList.unshift(data.conversation);
@@ -957,6 +1027,7 @@
                 console.error('Error creating conversation:', error);
             }
         }
+
 
         async function loadConversation(conversationId) {
             if (!currentUser) return;
@@ -1108,14 +1179,22 @@
             document.getElementById('sidebar-name').innerText = profile.name || "User";
             document.getElementById('welcome-name').innerText = profile.name || "Friend";
 
-            // Update avatar for email users (who don't have photoURL from Google)
-            // Use the first letter of the user's name from their profile
-            if (currentUser && !currentUser.photoURL) {
-                const avatarEl = document.getElementById('sidebar-avatar');
-                const userName = profile.name || currentUser.displayName || currentUser.email || "User";
-                const firstLetter = userName.charAt(0).toUpperCase();
+            // Avatar handling - Priority: 1. Custom photo_url, 2. Google photo, 3. Initial letter
+            const avatarEl = document.getElementById('sidebar-avatar');
+            const userName = profile.name || (currentUser && currentUser.displayName) || "User";
+            const firstLetter = userName.charAt(0).toUpperCase();
+
+            if (profile.photo_url) {
+                // Use custom uploaded photo
+                avatarEl.src = profile.photo_url;
+            } else if (currentUser && currentUser.photoURL) {
+                // Use Google photo
+                avatarEl.src = currentUser.photoURL;
+            } else {
+                // Fallback to initial letter avatar
                 avatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLetter)}&background=e11d48&color=fff&bold=true&size=128`;
             }
+
 
             // Level
             document.getElementById('sidebar-level').innerText = profile.fitness_level || "Beginner";
@@ -1274,18 +1353,24 @@
                     // Save AI response to conversation
                     saveMessageToConversation('ai', data.reply);
 
+                    // If weight was logged, refresh the profile to update BMI display
+                    if (data.intent === 'log_weight') {
+                        await loadUserProfile(currentUser.uid);
+                    }
+
                     // Suggestion Logic
                     if (data.intent.includes('fitness')) renderSuggestions('fitness_drilldown', true);
                     else if (data.intent.includes('nutrition')) renderSuggestions('nutrition_drilldown', true);
                     else renderSuggestions('initial', true);
                 }
+
             } catch (error) {
                 removeTyping();
                 addMessage("Sorry, I couldn't reach the server.", 'ai');
             }
         }
 
-        function addMessage(html, sender) {
+        function addMessage(html, sender, useTypingAnimation = true) {
             const list = document.getElementById('messages-list');
             const div = document.createElement('div');
             div.className = `flex gap-4 max-w-3xl mx-auto message-enter ${sender === 'user' ? 'justify-end' : ''}`;
@@ -1301,27 +1386,111 @@
                 ? `<div class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shrink-0 flex items-center justify-center shadow-md border border-slate-100 dark:border-slate-700 overflow-hidden">
                  <img src="/static/atlasIcon.png" class="w-7 h-7 object-contain">
                </div>`
-                : ``; // User doesn't need an avatar next to bubble usually, or use your profile pic logic
+                : ``;
 
             div.innerHTML = sender === 'ai'
-                ? `${avatar}<div class="${bubble} overflow-hidden leading-relaxed ai-message-content">${content}</div>`
+                ? `${avatar}<div class="${bubble} overflow-hidden leading-relaxed ai-message-content"></div>`
                 : `<div class="${bubble}">${content}</div>`;
 
             list.appendChild(div);
-            document.getElementById('chat-container').scrollTo({ top: document.getElementById('chat-container').scrollHeight, behavior: 'smooth' });
+
+            const container = document.getElementById('chat-container');
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+
+            // Apply typing animation for AI messages
+            if (sender === 'ai' && useTypingAnimation) {
+                const contentDiv = div.querySelector('.ai-message-content');
+
+                // Check if content has complex HTML (cards, tables, buttons)
+                const hasComplexHTML = content.includes('<div') || content.includes('<table') || content.includes('<button') || content.includes('class="');
+
+                if (hasComplexHTML) {
+                    // For complex HTML, fade in the content instead of typing
+                    contentDiv.style.opacity = '0';
+                    contentDiv.innerHTML = content;
+                    contentDiv.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => {
+                        contentDiv.style.opacity = '1';
+                        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+                    }, 50);
+                } else {
+                    // For text content, use typing animation
+                    typeMessage(contentDiv, content, () => {
+                        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+                    });
+                }
+            } else if (sender === 'ai') {
+                div.querySelector('.ai-message-content').innerHTML = content;
+            }
         }
+
+        // Typing animation function
+        function typeMessage(element, htmlContent, onComplete) {
+            // Parse HTML to extract text and tags
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+
+            // For simple text with basic HTML tags, type character by character
+            const plainText = tempDiv.textContent || tempDiv.innerText;
+
+            if (plainText.length > 500) {
+                // For very long messages, just fade in
+                element.style.opacity = '0';
+                element.innerHTML = htmlContent;
+                element.style.transition = 'opacity 0.4s ease';
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                    if (onComplete) onComplete();
+                }, 50);
+                return;
+            }
+
+            let index = 0;
+            const speed = 8; // milliseconds per character (faster = smaller number)
+            element.innerHTML = '';
+
+            // Use word-by-word for HTML content
+            const words = htmlContent.split(/(\s+)/);
+            let wordIndex = 0;
+
+            function typeWord() {
+                if (wordIndex < words.length) {
+                    element.innerHTML += words[wordIndex];
+                    wordIndex++;
+
+                    // Scroll during typing
+                    const container = document.getElementById('chat-container');
+                    container.scrollTop = container.scrollHeight;
+
+                    setTimeout(typeWord, speed * 2);
+                } else {
+                    // Ensure final HTML is properly rendered
+                    element.innerHTML = htmlContent;
+                    if (onComplete) onComplete();
+                }
+            }
+
+            typeWord();
+        }
+
 
         // Convert markdown-style formatting to HTML for clean display
         function formatAIMessage(text) {
             if (!text) return '';
+
+            // If the content already contains HTML tags (cards, etc.), return as-is
+            // This prevents the markdown regex from corrupting pre-formatted HTML
+            if (text.includes('<div') || text.includes('<table') || text.includes('<button')) {
+                return text;
+            }
 
             let formatted = text;
 
             // Convert **bold** to <b>bold</b>
             formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 
-            // Convert *italic* to <i>italic</i>
-            formatted = formatted.replace(/\*(.+?)\*/g, '<i>$1</i>');
+            // Convert *italic* to <i>italic</i> (only for simple cases, not in HTML)
+            formatted = formatted.replace(/\*([^*<>]+?)\*/g, '<i>$1</i>');
 
             // Convert markdown bullet points to HTML list
             // Match lines starting with - or * followed by space
@@ -1353,6 +1522,7 @@
             return formatted;
         }
 
+
         function showTyping() {
             const list = document.getElementById('messages-list');
             const div = document.createElement('div');
@@ -1383,7 +1553,7 @@
                 }
                 if (itemText === "Suggest different category") {
                     conversationState = 'awaiting_meal_category';
-                    return `addMessage('Which food category (e.g. Vegetarian, High Protein)?', 'ai')`;
+                    return `addMessage('Which food category (e.g. Breakfast, Lunch, Dinner)?', 'ai')`;
                 }
                 return `sendQuick('${itemText}')`;
             };
@@ -1409,7 +1579,59 @@
             document.getElementById('user-input').value = text;
             handleSendMessage();
         }
+    </script>
 
+    <!-- ============================================ -->
+    <!-- LIBRARY SIDEBAR (Gold Standard Vault)       -->
+    <!-- ============================================ -->
+    <div id="library-sidebar"
+        class="fixed top-0 right-0 h-full w-80 bg-white dark:bg-slate-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 border-l border-slate-100 dark:border-slate-700 flex flex-col">
+        <!-- Header -->
+        <div
+            class="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                    <i class="fas fa-trophy text-sm"></i>
+                </div>
+                <h2 class="font-bold text-slate-800 dark:text-slate-100">Gold Standards</h2>
+            </div>
+            <button onclick="closeLibrary()"
+                class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex p-2 gap-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+            <button onclick="switchLibTab('workouts')" id="tab-workouts"
+                class="flex-1 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-brand-600 shadow-sm transition-all">Workouts</button>
+            <button onclick="switchLibTab('nutrition')" id="tab-nutrition"
+                class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-all">Nutrition</button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4" id="library-content">
+            <!-- Dynamic Content Loaded via JS -->
+            <div class="text-center text-slate-400 mt-10">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br />Loading your vault...
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Library Button -->
+    <div class="fixed right-0 top-1/2 -translate-y-1/2 z-40">
+        <button onclick="openLibrary()"
+            class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 px-1 rounded-l-xl shadow-lg hover:pr-4 transition-all duration-300 group flex items-center gap-2 font-bold">
+            <span class="rotate-180" style="writing-mode: vertical-rl; text-orientation: mixed;">MY VAULT</span>
+            <div
+                class="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fas fa-star text-slate-900 text-xs"></i>
+            </div>
+        </button>
+    </div>
+
+    <script>
         // Modal & Onboarding Logic (Updated)
         function openProfileModal() {
             const modal = document.getElementById('profile-modal');
@@ -1434,6 +1656,7 @@
                 }
 
                 calculateLiveBMI(); // Trigger update immediately
+                initProfilePhotoPreview(); // Initialize photo preview
             }
         }
 
@@ -1472,6 +1695,148 @@
             }
         }
 
+        // ============================================
+        // LIBRARY & FAVORITES LOGIC
+        // ============================================
+        let currentLibTab = 'workouts';
+
+        function openLibrary() {
+            document.getElementById('library-sidebar').classList.remove('translate-x-full');
+            loadFavorites();
+        }
+
+        function closeLibrary() {
+            document.getElementById('library-sidebar').classList.add('translate-x-full');
+        }
+
+        function switchLibTab(tab) {
+            currentLibTab = tab;
+            // Update UI
+            document.getElementById('tab-workouts').className = tab === 'workouts'
+                ? "flex-1 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-brand-600 shadow-sm transition-all"
+                : "flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-all";
+
+            document.getElementById('tab-nutrition').className = tab === 'nutrition'
+                ? "flex-1 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-brand-600 shadow-sm transition-all"
+                : "flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-all";
+
+            loadFavorites();
+        }
+
+        async function loadFavorites() {
+            if (!currentUser) return;
+            const container = document.getElementById('library-content');
+
+            try {
+                const res = await fetch(`/favorites?user_id=${currentUser.uid}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    renderLibraryItems(data.favorites);
+                }
+            } catch (e) {
+                console.error("Load Lib Error:", e);
+                container.innerHTML = "<div class='text-red-500 text-center'>Failed to load vault.</div>";
+            }
+        }
+
+        function renderLibraryItems(favs) {
+            const container = document.getElementById('library-content');
+            container.innerHTML = "";
+
+            const items = currentLibTab === 'workouts' ? favs.exercises : favs.nutrition;
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 mt-10">
+                        <i class="far fa-folder-open text-4xl mb-3 opacity-30"></i>
+                        <p class="text-sm">No items saved yet.<br>Click the <i class="fas fa-star text-amber-500"></i> on any recommendation!</p>
+                    </div>`;
+                return;
+            }
+
+            items.forEach(item => {
+                let card = "";
+                if (currentLibTab === 'workouts') {
+                    card = `
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700 relative group">
+                        <div class="font-bold text-slate-800 dark:text-slate-200 pr-6">${item.Title}</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wide mt-1">${item.Bodypart} • ${item.protocol || '3x10'}</div>
+                        <div class="absolute right-3 top-3 text-amber-500"><i class="fas fa-star"></i></div>
+                    </div>`;
+                } else {
+                    // Nutrition format
+                    const p = item.Protein || 0;
+                    const c = item.Carbs || 0;
+                    const f = item.Fat || 0;
+                    const cal = item.Calories || 0;
+
+                    card = `
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700 relative group">
+                        <div class="font-bold text-slate-800 dark:text-slate-200 pr-6">${item.Name}</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wide mt-1 mb-2">${item.Meal_Type} • ${cal} kcal</div>
+                        
+                        <!-- Mini Macro Bar -->
+                        <div class="flex h-1.5 w-full rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
+                            <div class="bg-rose-500" style="width: ${p}%"></div>
+                            <div class="bg-amber-500" style="width: ${c}%"></div>
+                            <div class="bg-blue-500" style="width: ${f}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                            <span>P: ${p}g</span><span>C: ${c}g</span><span>F: ${f}g</span>
+                        </div>
+                    </div>`;
+                }
+                container.innerHTML += card;
+            });
+        }
+
+        async function toggleFavorite(el, itemData, type) {
+            if (!currentUser) return;
+            // Optimistic UI
+            const icon = el.querySelector('i');
+            icon.classList.remove('far'); // outlined
+            icon.classList.add('fas', 'text-amber-500'); // filled
+
+            try {
+                await fetch('/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.uid,
+                        item_data: itemData,
+                        rating: 'good',
+                        item_type: type
+                    })
+                });
+                // Reload library only if open
+                if (!document.getElementById('library-sidebar').classList.contains('translate-x-full')) {
+                    loadFavorites();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function hideItem(el, itemData, type) {
+            if (!currentUser) return;
+            // Visual removal
+            const card = el.closest('.group');
+            card.style.opacity = '0.5';
+
+            try {
+                await fetch('/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.uid,
+                        item_data: itemData,
+                        rating: 'bad',
+                        item_type: type
+                    })
+                });
+                card.innerHTML = "<div class='p-4 text-center text-xs text-slate-400'>Item hidden & added to ignore list.</div>";
+            } catch (e) { console.error(e); }
+        }
+
         function calculateLiveBMI() {
             const h = parseFloat(document.getElementById('edit-height').value) / 100;
             const w = parseFloat(document.getElementById('edit-weight').value);
@@ -1494,6 +1859,51 @@
             }
         }
 
+        // Profile photo handling
+        let selectedPhotoBase64 = null;
+
+        function handlePhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file size (max 500KB)
+            if (file.size > 500 * 1024) {
+                alert('Image too large. Please select an image under 500KB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const base64 = e.target.result;
+                selectedPhotoBase64 = base64;
+
+                // Update preview
+                const imgEl = document.getElementById('profile-photo-img');
+                const initialEl = document.getElementById('profile-photo-initial');
+                imgEl.src = base64;
+                imgEl.classList.remove('hidden');
+                initialEl.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function initProfilePhotoPreview() {
+            const imgEl = document.getElementById('profile-photo-img');
+            const initialEl = document.getElementById('profile-photo-initial');
+
+            if (userProfileCache.photo_url) {
+                imgEl.src = userProfileCache.photo_url;
+                imgEl.classList.remove('hidden');
+                initialEl.classList.add('hidden');
+            } else {
+                const name = userProfileCache.name || 'U';
+                initialEl.textContent = name.charAt(0).toUpperCase();
+                initialEl.classList.remove('hidden');
+                imgEl.classList.add('hidden');
+            }
+            selectedPhotoBase64 = null; // Reset
+        }
+
         async function handleProfileUpdate(e) {
             e.preventDefault();
             const updates = {
@@ -1506,10 +1916,17 @@
                 fitness_level: document.getElementById('edit-level').value,
                 medical_conditions: document.getElementById('edit-conditions').value
             };
+
+            // Include photo if selected
+            if (selectedPhotoBase64) {
+                updates.photo_url = selectedPhotoBase64;
+            }
+
             await fetch('/update-user-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.uid, updates }) });
             closeProfileModal();
             await loadUserProfile(currentUser.uid);
         }
+
 
         // Onboarding (Updated Flow)
         function startOnboarding() { isOnboarding = true; onboardingStep = 0; document.getElementById('welcome-screen').classList.add('hidden'); addMessage("Hello! 👋 I'm Atlas. Ready to get started?", 'ai'); }

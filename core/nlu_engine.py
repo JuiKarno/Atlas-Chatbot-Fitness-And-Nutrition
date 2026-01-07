@@ -25,12 +25,11 @@ class SmartNLUEngine:
            - If message contains "I hate", "I dislike", "I don't like", "not a fan of", "avoid", "no [food/exercise]" → `add_dislike`
            - If message asks to "clear", "reset", or "remove" preferences → `clear_preferences`
         
-        2. **HEALTH QUESTIONS (Check SECOND - VERY IMPORTANT)**
-           - Questions about BMI, weight, calories, macros, body fat, target weight → `general_chat`
-           - "What is my BMI?", "What weight should I target?", "How many calories?" → `general_chat`
-           - Questions asking for calculation, explanation, or advice → `general_chat`
+        2. **COACH INTERVENTION (Check SECOND)**
+           - If user wants to "dislike", "avoid", "skip", or "hate" a Gold Standard item (Squats, Deadlifts, Burpees, HIIT, High Protein) → `coach_challenge`
+           - If user makes excuses like "it's too hard", "I'm tired", "don't like it" regarding top-tier exercises → `coach_challenge`
         
-        3. **REQUEST DETECTION (Check AFTER above)**
+        3. **HEALTH QUESTIONS (Check THIRD - VERY IMPORTANT)**
            - If message asks to "give me", "suggest", "recommend", "show me", "what should I" → recommendation intent
            - If message has a question about how to do something → `explain_exercise`
         
@@ -48,6 +47,11 @@ class SmartNLUEngine:
         - 'nutrition_variation': User wants DIFFERENT food ("show me other options").
         - 'explain_exercise': User asks for instructions ("how to do X").
         - 'workout_table': User wants a WEEKLY WORKOUT TABLE/TIMETABLE/SCHEDULE. Keywords: "timetable", "schedule", "weekly plan", "5 days workout".
+        - 'log_weight': User wants to LOG their weight. Keywords: "I weigh", "log weight", "my weight is", "update weight", "kg today".
+        - 'log_nutrition': User wants to LOG food/calories/macros consumed. Keywords: "I ate", "log calories", "had X protein", "consumed", "intake".
+        - 'log_workout': User wants to LOG a completed workout. Keywords: "finished workout", "completed", "log workout", "did my", "just did".
+        - 'view_progress': User wants to VIEW their progress history. Keywords: "show progress", "my weight history", "calories today", "workout history", "how much", "track".
+        - 'coach_challenge': User avoids or complains about critical, high-impact exercises/foods.
         - 'out_of_scope': NON-FITNESS topics OR GIBBERISH.
 
         ### HEALTH QUESTION EXAMPLES (These are general_chat, NOT pathway_generation!)
@@ -81,12 +85,38 @@ class SmartNLUEngine:
         - "Show me breakfast ideas" → {"intent": "nutrition_request", "entities": {"target": "Breakfast"}}
         - "Something else please" → {"intent": "fitness_variation" or "nutrition_variation"}
 
-        ### COMPOUND EXAMPLES
+        ### COMPOUND EXAMPLES (CRITICAL - Extract ALL preferences/dislikes even in requests!)
         - "I like chicken, give me recipes" → {"intent": "nutrition_request", "entities": {"target": "chicken", "preferences": ["chicken"]}}
         - "I like kettlebell and chicken" → {"intent": "add_preference", "entities": {"preferences": ["kettlebell", "chicken"]}}
+        - "I like kettlebell but hate barbell, suggest abs workout" → {"intent": "fitness_request", "entities": {"target": "Abs", "preferences": ["kettlebell"], "dislikes": ["barbell"]}}
+        - "I prefer dumbbells but don't like machines. Give me chest exercises" → {"intent": "fitness_request", "entities": {"target": "Chest", "preferences": ["dumbbells"], "dislikes": ["machines"]}}
+        - "I hate cardio but love strength training, show me workouts" → {"intent": "fitness_request", "entities": {"target": "General", "preferences": ["strength training"], "dislikes": ["cardio"]}}
+        - "No fish please, suggest me high protein dinner" → {"intent": "nutrition_request", "entities": {"target": "High Protein Dinner", "dislikes": ["fish"]}}
+        - "I avoid dairy, give me breakfast ideas" → {"intent": "nutrition_request", "entities": {"target": "Breakfast", "dislikes": ["dairy"]}}
+
+        ### PROGRESS TRACKING EXAMPLES (NEW!)
+        - "I weigh 75kg today" → {"intent": "log_weight", "entities": {"weight": 75}}
+        - "Log my weight: 80" → {"intent": "log_weight", "entities": {"weight": 80}}
+        - "My weight is 68.5 kg" → {"intent": "log_weight", "entities": {"weight": 68.5}}
+        - "Right now my weight is 70kg and what is my bmi?" → {"intent": "log_weight", "entities": {"weight": 70, "ask_bmi": true}}
+        - "My weight is 65kg, calculate my bmi" → {"intent": "log_weight", "entities": {"weight": 65, "ask_bmi": true}}
+        - "I'm 80kg now, what's my BMI?" → {"intent": "log_weight", "entities": {"weight": 80, "ask_bmi": true}}
+        - "Update my weight to 72kg and show my BMI" → {"intent": "log_weight", "entities": {"weight": 72, "ask_bmi": true}}
+        - "I ate 500 calories" → {"intent": "log_nutrition", "entities": {"calories": 500}}
+        - "Log 50g protein" → {"intent": "log_nutrition", "entities": {"protein": 50}}
+        - "Had 300 calories and 30g protein" → {"intent": "log_nutrition", "entities": {"calories": 300, "protein": 30}}
+        - "I consumed 40g carbs" → {"intent": "log_nutrition", "entities": {"carbs": 40}}
+        - "I finished my Chest workout" → {"intent": "log_workout", "entities": {"workout_name": "Chest"}}
+        - "Just completed leg day" → {"intent": "log_workout", "entities": {"workout_name": "Leg"}}
+        - "Log my back workout" → {"intent": "log_workout", "entities": {"workout_name": "Back"}}
+        - "Show my weight progress" → {"intent": "view_progress", "entities": {"progress_type": "weight"}}
+        - "How many calories have I eaten today?" → {"intent": "view_progress", "entities": {"progress_type": "nutrition"}}
+        - "Show my workout history" → {"intent": "view_progress", "entities": {"progress_type": "workout"}}
+        - "What's my calorie intake today?" → {"intent": "view_progress", "entities": {"progress_type": "nutrition"}}
+        - "Track my progress" → {"intent": "view_progress", "entities": {"progress_type": "all"}}
 
         ### OUTPUT FORMAT (JSON ONLY)
-        {"intent": "string", "entities": {"target": "string or null", "preferences": ["string", ...], "dislikes": ["string", ...], "category": "string or null"}}
+        {"intent": "string", "entities": {"target": "string or null", "preferences": [], "dislikes": [], "category": "string or null", "weight": "number or null", "calories": "number or null", "protein": "number or null", "carbs": "number or null", "fat": "number or null", "workout_name": "string or null", "progress_type": "weight|nutrition|workout|all or null"}}
         """
 
         try:
@@ -118,6 +148,55 @@ class SmartNLUEngine:
         except Exception as e:
             print(f"NLU Error: {e}")
             return {"intent": "general_chat", "entities": {}}
+
+    def _get_coach_intervention(self, message, profile):
+        """Generates an 'Empathetic Performance Coach' persona response to challenge the user."""
+        name = profile.get('name', 'Friend')
+        goal = profile.get('goal', 'Maintenance')
+        
+        # Hardcoded Gold Standards for the persona to reference
+        gold_standards = {
+            'Weight Loss': ['HIIT', 'Burpees', 'Caloric Deficit', 'Fiber'],
+            'Muscle Gain': ['Squats', 'Deadlifts', 'Bench Press', 'High Protein']
+        }
+        
+        relevant_standards = []
+        for k, v in gold_standards.items():
+            if k in goal: relevant_standards.extend(v)
+
+        system_prompt = f"""
+        You are Atlas, an Empathetic Performance Coach.
+        Your job is to be the user's friendly partner in success.
+        
+        ### KEY PERSONA TRAITS:
+        - **Tone:** Mature, friendly, warm, yet disciplined. Use "We" language (e.g., "Let's reach our goal", "We can handle this").
+        - **Philosophy:** Trust is built on understanding, but Progress is built on Truth.
+        - **Strategy:** Validate -> Challenge -> Support.
+
+        ### INTERVENTION STRUCTURE:
+        1. **Validate:** Acknowledge their feeling (e.g., "I know squats are brutal," "It's normal to feel tired.").
+        2. **The Truth (Pivot):** Gently explain why avoiding this hurts **OUR** goal (e.g., "But skipping leg day limits our total metabolism.").
+        3. **Micro-Challenge:** Offer a compromise (e.g., "Let's just do 2 sets today?" or "What if we swap it for Leg Press just for today?").
+        4. **Closing:** A warm confident nudge (e.g., "I know you've got this.").
+
+        User Goal: {goal}
+        Relevant Gold Standards: {', '.join(relevant_standards)}
+        
+        **OUTPUT FORMAT:** HTML ONLY. Use <b>bold</b> and <br> for structure. NO markdown blocks.
+        """
+
+        try:
+            response = self.client.chat.completions.create(
+                model=Config.AI_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message}
+                ],
+                temperature=0.8
+            )
+            return response.choices[0].message.content
+        except:
+            return f"I hear you, {name}. It's tough, but remember we're doing this for {goal}. Let's try to stick to the plan."
 
     def generate_response(self, profile, message, intent):
         """
@@ -177,33 +256,40 @@ class SmartNLUEngine:
             html += '</div>'
             return f"{intro}{html}"
 
+        # --- LOGGING CONFIRMATION ---
+        if intent in ['log_weight', 'log_nutrition', 'log_workout', 'view_progress']:
+            return self._format_log_confirmation(intent, entities)
+
+        # --- COACH CHALLENGE INTERVENTION ---
+        if intent == 'coach_challenge':
+            return self._get_coach_intervention(message, profile)
+
         # --- GENERAL CHAT & EXPLANATIONS (Modern Chatbot Style) ---
         system_prompt = f"""
-        You are Atlas, a highly intelligent and supportive AI Fitness Coach.
-
-        **YOUR GOAL:** Provide clear, scientifically accurate, and personalized answers about fitness and health.
-
-        **USER PROFILE (USE THIS DATA!):**
+        You are Atlas, an Empathetic Performance Coach.
+        
+        **USER PROFILE (USE THIS DATA FOR ALL CALCULATIONS!):**
         {user_context}
-
-        **CRITICAL FORMATTING RULES (YOU MUST FOLLOW THESE!):**
-        1. **Use HTML tags for formatting** - This is displayed in a web chat, NOT markdown!
-        2. **Line breaks:** Use `<br>` for new lines, NOT newline characters.
-        3. **Bold text:** Use `<b>text</b>` for emphasis.
-        4. **Bullet lists:** Use `<ul><li>item</li></ul>` format.
-        5. **Numbered lists:** Use `<ol><li>item</li></ol>` format.
-        6. **Paragraphs:** Keep to 2-3 sentences max. Add `<br><br>` between paragraphs.
-        7. **Tables:** Use proper `<table>` HTML if showing data tables.
+        
+        **CRITICAL FORMATTING RULES:**
+        1. **Use HTML tags for formatting** - Use <b>bold</b>, <br> for new lines.
+        2. **Bullet lists:** Use <ul><li>item</li></ul> format.
+        3. **KEEP RESPONSES COMPACT** - No excessive blank lines or spacing.
+        4. **MAX LENGTH: 150-200 words** for explanations. Be concise!
         
         **CONTENT INSTRUCTIONS:**
-        1. **Use Profile Data:** If user asks about BMI, weight targets, or calories, USE the numbers from USER PROFILE. Calculate if needed.
-        2. **Start with a direct answer** - don't ramble.
-        3. **Explain the 'Why'** briefly before giving specific numbers.
-        4. **Tone:** Professional yet encouraging.
-
-        **EXAMPLE RESPONSE (User asks about BMI):**
-        Based on your height of <b>175cm</b> and weight of <b>70kg</b>, your current BMI is <b>22.9</b>.<br><br>This places you in the <b>Normal Weight</b> category, which is great!<br><br>Here's a quick breakdown:<ul><li><b>Current BMI:</b> 22.9</li><li><b>Healthy Range:</b> 18.5 - 24.9</li><li><b>Target Weight:</b> 65-76 kg</li></ul>Would you like a workout plan to help build lean muscle?
+        1. **Use Profile Data:** If user asks about BMI, weight targets, or calories, CALCULATE using the EXACT numbers from USER PROFILE above.
+        2. **BMI Formula:** BMI = weight(kg) / (height(m))^2. Use the user's ACTUAL weight and height.
+        3. **Start with a direct answer** - don't ramble.
+        4. **Be BRIEF and actionable** - users want quick tips, not essays.
+        5. **Tone:** Professional yet encouraging. Use "We" language.
+        
+        **FOR EXERCISE EXPLANATIONS:**
+        - Use a single <b>header</b>, then 3-4 key bullet points only
+        - Focus on: Setup, Key cues, Common mistake to avoid
+        - Skip lengthy introductions - get straight to the form tips
         """
+
 
         try:
             response = self.client.chat.completions.create(
@@ -238,29 +324,31 @@ class SmartNLUEngine:
         **OUTPUT FORMAT (HTML ONLY):**
         Return the raw HTML inside a `<div>`. Do not use markdown blocks.
 
-        Structure & Design (Use Tailwind Classes):
-        1. **Header:** - Use a `<div>` with `bg-gradient-to-r from-orange-100 to-amber-100 dark:from-slate-700 dark:to-slate-800 p-6 rounded-t-3xl border-b border-orange-200 dark:border-slate-600`.
-           - Inside, put the Title `<h3>` with `text-2xl font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2`. Use a relevant emoji.
-           - Add the Description `<p>` with `text-sm text-slate-600 dark:text-slate-300 italic`.
+        Structure & Design (Use Tailwind Classes for light/dark mode):
+
+        1. **Recipe Header:**
+           - Use a `<div>` with `p-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700`.
+           - Title `<h3>` with `text-2xl font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2`. Start with a relevant emoji.
+           - Description `<p>` with `text-sm text-slate-500 dark:text-slate-400 italic`.
 
         2. **Ingredients Section:**
-           - Use a `<div>` with `p-6 bg-white dark:bg-slate-900`.
-           - Header `<h4>` with `font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-xs mb-3 flex items-center gap-2`. Use icon `<i class="fas fa-shopping-basket"></i>` (FontAwesome).
+           - Use a `<div>` with `p-6 bg-white dark:bg-slate-800`.
+           - Header `<h4>` with `font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-xs mb-4 flex items-center gap-2`. Use `<i class="fas fa-shopping-basket text-brand-500"></i>`.
            - List `<ul>` with `space-y-2`.
-           - Items `<li>` with `flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 before:content-['•'] before:text-brand-500 before:font-bold`.
+           - Items `<li>` with `flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300`. Use `<span class="text-brand-500 font-bold">•</span>` as bullet.
 
         3. **Instructions Section:**
-           - Use a `<div>` with `p-6 pt-0 bg-white dark:bg-slate-900`.
-           - Header `<h4>` with `font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-xs mb-3 flex items-center gap-2`. Use icon `<i class="fas fa-list-ol"></i>`.
+           - Use a `<div>` with `p-6 pt-0 bg-white dark:bg-slate-800`.
+           - Header `<h4>` with `font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-xs mb-4 flex items-center gap-2`. Use `<i class="fas fa-list-ol text-brand-500"></i>`.
            - List `<ol>` with `space-y-4`.
-           - Items `<li>` with `flex gap-3 text-sm text-slate-600 dark:text-slate-300`. Use a span for the number (e.g., `<span class="font-bold text-brand-600">1.</span>`).
+           - Items `<li>` with `flex gap-3 text-sm text-slate-600 dark:text-slate-300`. Use `<span class="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-xs font-bold flex items-center justify-center shrink-0">1</span>` for numbered circles.
 
-        4. **Chef's Tip:**
-           - Use a `<div>` with `p-4 m-6 mt-0 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-2xl text-sm border border-emerald-100 dark:border-emerald-800/30 flex gap-3 items-start`.
-           - Icon `<i class="fas fa-lightbulb mt-1"></i>`.
-           - Content `<span><b>Chef's Tip:</b> ... </span>`.
+        4. **Chef's Tip (at the end):**
+           - Use a `<div>` with `mx-6 mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm border border-emerald-100 dark:border-emerald-800/30 flex gap-3 items-start`.
+           - Icon: `<i class="fas fa-lightbulb text-emerald-500 mt-0.5"></i>`.
+           - Content: `<span><b class="text-emerald-700 dark:text-emerald-300">Chef's Tip:</b> ...</span>`.
 
-        Output ONLY the HTML.
+        IMPORTANT: Output ONLY the HTML. No markdown, no explanation.
         """
 
         try:
@@ -274,4 +362,4 @@ class SmartNLUEngine:
             )
             return response.choices[0].message.content
         except Exception:
-            return "<div class='text-red-500 font-bold'>The chef is currently busy. Please try again in a moment!</div>"
+            return "<div class='text-red-500 font-bold p-6 text-center'>The chef is currently busy. Please try again in a moment!</div>"
