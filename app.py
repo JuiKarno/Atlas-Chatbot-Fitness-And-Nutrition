@@ -2,8 +2,19 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from datetime import datetime
 import os
+
+# Security imports
+from config.security import (
+    SecurityConfig,
+    validate_user_ownership,
+    sanitize_input,
+    add_security_headers,
+    validate_numeric_input
+)
 
 # --- CONFIG & CORE IMPORTS ---
 from config.settings import Config
@@ -36,7 +47,23 @@ if not firebase_admin._apps:
 db_client = firestore.client() if firebase_admin._apps else None
 
 app = Flask(__name__)
-CORS(app)
+app.secret_key = SecurityConfig.SECRET_KEY
+
+# CORS Configuration - restrict to allowed origins in production
+CORS(app, origins=SecurityConfig.ALLOWED_ORIGINS, supports_credentials=True)
+
+# Rate Limiting
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[SecurityConfig.RATE_LIMIT_DEFAULT],
+    storage_uri="memory://"
+)
+
+# Add security headers to all responses
+@app.after_request
+def after_request(response):
+    return add_security_headers(response)
 
 # --- ENGINE INIT ---
 nlu = SmartNLUEngine()
@@ -56,6 +83,19 @@ def login_page():
 @app.route('/chat')
 def chat_page():
     return render_template('chatbot.html')
+
+
+@app.route('/api/firebase-config')
+def firebase_config():
+    """Serve Firebase client config from environment variables"""
+    return jsonify({
+        "apiKey": os.getenv('FIREBASE_API_KEY'),
+        "authDomain": os.getenv('FIREBASE_AUTH_DOMAIN'),
+        "projectId": os.getenv('FIREBASE_PROJECT_ID_CLIENT'),
+        "storageBucket": os.getenv('FIREBASE_STORAGE_BUCKET'),
+        "messagingSenderId": os.getenv('FIREBASE_MESSAGING_SENDER_ID'),
+        "appId": os.getenv('FIREBASE_APP_ID')
+    })
 
 
 # --- API ENDPOINTS ---
@@ -141,6 +181,26 @@ def generate_recipe_endpoint():
         return jsonify({"success": False, "error": "Chef is busy!"}), 500
 
 
+@app.route('/reset-preferences', methods=['POST'])
+def reset_preferences():
+    """Clears user's likes and dislikes from session."""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({"success": False, "error": "No user ID"}), 400
+        
+        # The preferences are stored in session, so we just return success
+        # The frontend will clear its local session data
+        # If you want to persist preferences in Firestore, you would clear them here
+        
+        return jsonify({"success": True, "message": "Preferences cleared"})
+    except Exception as e:
+        print(f"Reset Preferences Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route('/feedback', methods=['POST'])
 def handle_feedback():
     try:
@@ -209,6 +269,7 @@ def log_data():
 
 
 @app.route('/get-recommendation', methods=['POST'])
+@limiter.limit(SecurityConfig.RATE_LIMIT_CHAT)
 def chat_endpoint():
     try:
         data = request.get_json()
@@ -910,4 +971,13 @@ def save_message(conversation_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Validate security configuration before starting
+    errors = SecurityConfig.validate()
+    if errors:
+        print("\n⚠️  SECURITY WARNINGS:")
+        for error in errors:
+            print(f"   - {error}")
+        print()
+    
+    # NEVER use debug=True in production!
+    app.run(debug=SecurityConfig.DEBUG, port=5000)
