@@ -1028,6 +1028,73 @@
             loadConversations();
         }
 
+        // ================= TIMESTAMP HELPER FUNCTIONS =================
+
+        /**
+         * Parse Firestore timestamp to JavaScript Date object
+         * Handles various timestamp formats from Firestore
+         */
+        function parseTimestamp(timestamp) {
+            if (!timestamp) return null;
+
+            // If it's already a Date object
+            if (timestamp instanceof Date) return timestamp;
+
+            // If it's a Firestore Timestamp object with seconds
+            if (timestamp.seconds) {
+                return new Date(timestamp.seconds * 1000);
+            }
+
+            // If it's a Firestore Timestamp with _seconds (older format)
+            if (timestamp._seconds) {
+                return new Date(timestamp._seconds * 1000);
+            }
+
+            // If it's an ISO string
+            if (typeof timestamp === 'string') {
+                return new Date(timestamp);
+            }
+
+            // If it's a number (Unix milliseconds)
+            if (typeof timestamp === 'number') {
+                return new Date(timestamp);
+            }
+
+            return null;
+        }
+
+        /**
+         * Format a date as relative time (e.g., "5 minutes ago", "2 hours ago")
+         * Uses local timezone for accurate display
+         */
+        function formatTimeAgo(date) {
+            if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+                return '';
+            }
+
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffSeconds = Math.floor(diffMs / 1000);
+            const diffMinutes = Math.floor(diffSeconds / 60);
+            const diffHours = Math.floor(diffMinutes / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffSeconds < 60) {
+                return 'Just now';
+            } else if (diffMinutes < 60) {
+                return `${diffMinutes}m ago`;
+            } else if (diffHours < 24) {
+                return `${diffHours}h ago`;
+            } else if (diffDays === 1) {
+                return 'Yesterday';
+            } else if (diffDays < 7) {
+                return `${diffDays}d ago`;
+            } else {
+                // For older dates, show the actual date
+                return date.toLocaleDateString();
+            }
+        }
+
         // ================= CHAT HISTORY FUNCTIONS =================
 
         async function loadConversations() {
