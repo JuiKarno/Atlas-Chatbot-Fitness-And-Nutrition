@@ -79,12 +79,27 @@ class SmartNLUEngine:
         - "I like barbell exercises" → {"intent": "add_preference", "entities": {"preferences": ["barbell"]}}
         - "I prefer bodyweight exercises" → {"intent": "add_preference", "entities": {"preferences": ["bodyweight"]}}
         - "I enjoy kettlebell workouts" → {"intent": "add_preference", "entities": {"preferences": ["kettlebell"]}}
+        
+        ### DISLIKE EXAMPLES (These should ALL be add_dislike, NOT fitness_request!)
         - "I don't like burpees" → {"intent": "add_dislike", "entities": {"dislikes": ["burpees"]}}
         - "I hate fish" → {"intent": "add_dislike", "entities": {"dislikes": ["fish"]}}
+        - "I hate using kettlebell" → {"intent": "add_dislike", "entities": {"dislikes": ["kettlebell"]}}
+        - "I don't like to use kettlebell" → {"intent": "add_dislike", "entities": {"dislikes": ["kettlebell"]}}
+        - "I hate kettlebell" → {"intent": "add_dislike", "entities": {"dislikes": ["kettlebell"]}}
+        - "I don't like machines" → {"intent": "add_dislike", "entities": {"dislikes": ["machines"]}}
+        - "I hate cardio" → {"intent": "add_dislike", "entities": {"dislikes": ["cardio"]}}
+        - "I don't like eating fish" → {"intent": "add_dislike", "entities": {"dislikes": ["fish"]}}
+        - "I hate to eat fish" → {"intent": "add_dislike", "entities": {"dislikes": ["fish"]}}
         - "Not a fan of cardio" → {"intent": "add_dislike", "entities": {"dislikes": ["cardio"]}}
         - "Actually, I prefer yoga" → {"intent": "add_preference", "entities": {"preferences": ["yoga"]}}
         
-        ### REQUEST EXAMPLES (These are NOT preferences)
+        ### PURE PREFERENCE/DISLIKE COMBINATIONS (NO explicit request = add_preference or add_dislike!)
+        - "I don't like kettlebell and hate fish" → {"intent": "add_dislike", "entities": {"dislikes": ["kettlebell", "fish"]}}
+        - "I don't like to use kettlebell and hate to eat fish" → {"intent": "add_dislike", "entities": {"dislikes": ["kettlebell", "fish"]}}
+        - "I like dumbbell and hate kettlebell" → {"intent": "add_preference", "entities": {"preferences": ["dumbbell"], "dislikes": ["kettlebell"]}}
+        - "I prefer chicken but hate fish" → {"intent": "add_preference", "entities": {"preferences": ["chicken"], "dislikes": ["fish"]}}
+        
+        ### REQUEST EXAMPLES (These are NOT preferences - they ask for something specific)
         - "Give me chest exercises" → {"intent": "fitness_request", "entities": {"target": "Chest"}}
         - "Suggest high protein meals" → {"intent": "nutrition_request", "entities": {"target": "High Protein"}}
         - "I want a workout for legs" → {"intent": "fitness_request", "entities": {"target": "Legs"}}
