@@ -31,12 +31,36 @@ class SecurityConfig:
     DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     
     # Security Headers
+    # Note: CSP is configured to allow Firebase Auth (Google Sign-In) to work
     SECURITY_HEADERS = {
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'SAMEORIGIN',
         'X-XSS-Protection': '1; mode=block',
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com;"
+        # CSP configured for Firebase Authentication compatibility
+        'Content-Security-Policy': (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+            "https://cdn.tailwindcss.com "
+            "https://*.gstatic.com "
+            "https://apis.google.com "
+            "https://*.googleapis.com "
+            "https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' "
+            "https://fonts.googleapis.com "
+            "https://cdnjs.cloudflare.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+            "img-src 'self' data: https: blob:; "
+            "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com; "
+            "connect-src 'self' "
+            "https://*.googleapis.com "
+            "https://*.gstatic.com "
+            "https://*.firebaseio.com "
+            "https://*.firebaseapp.com "
+            "https://identitytoolkit.googleapis.com "
+            "https://securetoken.googleapis.com "
+            "wss://*.firebaseio.com;"
+        )
     }
     
     @classmethod
