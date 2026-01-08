@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/static/atlasIcon.png">
+    <link rel="apple-touch-icon" href="/static/atlasIcon.png">
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -772,28 +774,41 @@
 
     <script>
         // ================= CONFIGURATION =================
-        const firebaseConfig = {
-            apiKey: "AIzaSyBUS1XYl0tllTgfvkTGjafHYg-osttDNfw",
-            authDomain: "atlas-fitness-v2.firebaseapp.com",
-            projectId: "atlas-fitness-v2",
-            storageBucket: "atlas-fitness-v2.firebasestorage.app",
-            messagingSenderId: "30986663218",
-            appId: "1:30986663218:web:ae68a4828cd4c950aed32b"
-        };
-
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-
+        // Firebase config is now loaded from backend to avoid exposing in source
+        let auth;
         let currentUser = null;
         let backendSession = {};
         let userProfileCache = {};
         let isOnboarding = false;
         let onboardingStep = 0;
         let onboardingData = {};
-        let conversationState = null; // Track conversation context
-        let isProfileComplete = false; // Track if user has completed profile setup
-        let currentConversationId = null; // Track active conversation
-        let conversationsList = []; // Cache of conversations
+        let conversationState = null;
+        let isProfileComplete = false;
+        let currentConversationId = null;
+        let conversationsList = [];
+
+        async function initFirebase() {
+            try {
+                const response = await fetch('/api/firebase-config');
+                const firebaseConfig = await response.json();
+
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                auth = firebase.auth();
+
+                // Set up auth state listener after Firebase is ready
+                auth.onAuthStateChanged(handleAuthChange);
+            } catch (error) {
+                console.error('Failed to load Firebase config:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // Initialize Firebase on page load
+        initFirebase();
+
+
 
         // Suggestions Logic
         const SUGGESTIONS = {
