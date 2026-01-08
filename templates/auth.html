@@ -742,6 +742,10 @@
         async function handleGoogleLogin() {
             setLoading(true);
             const provider = new firebase.auth.GoogleAuthProvider();
+            // Force the account selection prompt every time
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
             try {
                 const result = await auth.signInWithPopup(provider);
                 const user = result.user;
