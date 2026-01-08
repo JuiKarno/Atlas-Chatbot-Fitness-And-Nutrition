@@ -73,6 +73,12 @@ class SmartNLUEngine:
         - "I like chicken" → {"intent": "add_preference", "entities": {"preferences": ["chicken"]}}
         - "I love running" → {"intent": "add_preference", "entities": {"preferences": ["running"]}}
         - "I prefer vegan food" → {"intent": "add_preference", "entities": {"preferences": ["vegan food"]}}
+        - "I like to use dumbbell" → {"intent": "add_preference", "entities": {"preferences": ["dumbbell"]}}
+        - "I like to use dumbbell for workout" → {"intent": "add_preference", "entities": {"preferences": ["dumbbell"]}}
+        - "I like using resistance bands" → {"intent": "add_preference", "entities": {"preferences": ["resistance bands"]}}
+        - "I like barbell exercises" → {"intent": "add_preference", "entities": {"preferences": ["barbell"]}}
+        - "I prefer bodyweight exercises" → {"intent": "add_preference", "entities": {"preferences": ["bodyweight"]}}
+        - "I enjoy kettlebell workouts" → {"intent": "add_preference", "entities": {"preferences": ["kettlebell"]}}
         - "I don't like burpees" → {"intent": "add_dislike", "entities": {"dislikes": ["burpees"]}}
         - "I hate fish" → {"intent": "add_dislike", "entities": {"dislikes": ["fish"]}}
         - "Not a fan of cardio" → {"intent": "add_dislike", "entities": {"dislikes": ["cardio"]}}
