@@ -288,6 +288,7 @@ class SmartNLUEngine:
         - Use a single <b>header</b>, then 3-4 key bullet points only
         - Focus on: Setup, Key cues, Common mistake to avoid
         - Skip lengthy introductions - get straight to the form tips
+        - If user asks for YouTube link, include: <br><br><a href="https://www.youtube.com/results?search_query=[EXERCISE NAME]+tutorial" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors"><i class="fab fa-youtube"></i> Watch Tutorial</a>
         """
 
 
