@@ -808,6 +808,64 @@
         // Initialize Firebase on page load
         initFirebase();
 
+        // Handle authentication state changes
+        async function handleAuthChange(user) {
+            if (user) {
+                // User is signed in
+                currentUser = user;
+                console.log('User logged in:', user.uid);
+
+                // Load user profile and initialize chat
+                await loadUserProfile(user.uid);
+                loadConversations();
+
+                // Update sidebar with user info
+                updateSidebarUserInfo();
+            } else {
+                // User is not signed in, redirect to login
+                console.log('No user signed in, redirecting to login');
+                window.location.href = '/';
+            }
+        }
+
+        // Update sidebar with user info
+        function updateSidebarUserInfo() {
+            if (!currentUser || !userProfileCache) return;
+
+            const nameEl = document.getElementById('sidebar-name');
+            const avatarEl = document.getElementById('sidebar-avatar');
+            const levelEl = document.getElementById('sidebar-level');
+            const bmiEl = document.getElementById('sidebar-bmi');
+            const goalEl = document.getElementById('sidebar-goal-text');
+            const welcomeEl = document.getElementById('welcome-name');
+
+            if (nameEl && userProfileCache.name) {
+                nameEl.textContent = userProfileCache.name;
+                if (welcomeEl) welcomeEl.textContent = userProfileCache.name.split(' ')[0];
+            }
+
+            if (avatarEl) {
+                if (userProfileCache.photoURL) {
+                    avatarEl.src = userProfileCache.photoURL;
+                } else if (currentUser.photoURL) {
+                    avatarEl.src = currentUser.photoURL;
+                } else {
+                    avatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfileCache.name || 'User')}&background=e11d48&color=fff`;
+                }
+            }
+
+            if (levelEl && userProfileCache.fitness_level) {
+                levelEl.textContent = userProfileCache.fitness_level;
+            }
+
+            if (bmiEl && userProfileCache.bmi) {
+                bmiEl.textContent = parseFloat(userProfileCache.bmi).toFixed(1);
+            }
+
+            if (goalEl && userProfileCache.goal) {
+                goalEl.textContent = userProfileCache.goal;
+            }
+        }
 
 
         // Suggestions Logic
