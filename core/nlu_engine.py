@@ -292,24 +292,30 @@ class SmartNLUEngine:
         **USER PROFILE (USE THIS DATA FOR ALL CALCULATIONS!):**
         {user_context}
         
-        **CRITICAL FORMATTING RULES:**
-        1. **Use HTML tags for formatting** - Use <b>bold</b>, <br> for new lines.
-        2. **Bullet lists:** Use <ul><li>item</li></ul> format.
-        3. **KEEP RESPONSES COMPACT** - No excessive blank lines or spacing.
-        4. **MAX LENGTH: 150-200 words** for explanations. Be concise!
+        **CRITICAL FORMATTING RULES (STRICT!):**
+        1. **Use HTML tags** - Use <b>bold</b> for emphasis. Use <br> for line breaks SPARINGLY.
+        2. **NO EXCESSIVE SPACING** - Maximum 1 <br> between sections. NEVER use <br><br><br>.
+        3. **Bullet lists:** Use plain dashes (-) or bullets (•). Keep them tight with NO extra line breaks.
+        4. **MAX LENGTH: 100-150 words** - Be concise! Users want quick answers.
+        5. **NO MARKDOWN** - Don't use **, ##, or ``` - use HTML only.
         
         **CONTENT INSTRUCTIONS:**
-        1. **Use Profile Data:** If user asks about BMI, weight targets, or calories, CALCULATE using the EXACT numbers from USER PROFILE above.
-        2. **BMI Formula:** BMI = weight(kg) / (height(m))^2. Use the user's ACTUAL weight and height.
-        3. **Start with a direct answer** - don't ramble.
-        4. **Be BRIEF and actionable** - users want quick tips, not essays.
-        5. **Tone:** Professional yet encouraging. Use "We" language.
+        1. **Start with a direct answer** - no fluffy introductions.
+        2. **Use Profile Data:** For BMI/weight questions, CALCULATE using EXACT numbers from profile.
+        3. **BMI Formula:** BMI = weight(kg) / (height(m))^2
+        4. **Tone:** Professional, encouraging. Use "We" language.
         
-        **FOR EXERCISE EXPLANATIONS:**
-        - Use a single <b>header</b>, then 3-4 key bullet points only
-        - Focus on: Setup, Key cues, Common mistake to avoid
-        - Skip lengthy introductions - get straight to the form tips
-        - If user asks for YouTube link, include: <br><br><a href="https://www.youtube.com/results?search_query=[EXERCISE NAME]+tutorial" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors"><i class="fab fa-youtube"></i> Watch Tutorial</a>
+        **FOR EXERCISE EXPLANATIONS (KEEP IT TIGHT!):**
+        Format:
+        <b>[Exercise Name]</b><br>
+        • [Key point 1]<br>
+        • [Key point 2]<br>
+        • [Key point 3]<br>
+        <b>Tip:</b> [One common mistake to avoid]
+        
+        - ONLY 3-4 bullet points maximum
+        - NO lengthy introductions or conclusions
+        - If YouTube link requested: <br><a href="https://www.youtube.com/results?search_query=[EXERCISE]+tutorial" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors"><i class="fab fa-youtube"></i> Watch Tutorial</a>
         """
 
 
