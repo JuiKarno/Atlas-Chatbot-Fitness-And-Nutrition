@@ -1105,7 +1105,7 @@
             if (!currentUser) return;
 
             try {
-                const response = await fetch(`/conversations?user_id=${currentUser.uid}`);
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || ''}/conversations?user_id=${currentUser.uid}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -1168,7 +1168,7 @@
             if (!currentUser) return;
 
             try {
-                const response = await fetch('/conversations', {
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || ''}/conversations`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: currentUser.uid })
@@ -1209,7 +1209,7 @@
             if (!currentUser) return;
 
             try {
-                const response = await fetch(`/conversations/${conversationId}?user_id=${currentUser.uid}`);
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || ''}/conversations/${conversationId}?user_id=${currentUser.uid}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -1240,7 +1240,7 @@
             if (!confirm('Delete this conversation?')) return;
 
             try {
-                const response = await fetch(`/conversations/${conversationId}`, {
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || ''}/conversations/${conversationId}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: currentUser.uid })
@@ -1266,7 +1266,7 @@
             if (!currentUser || !currentConversationId) return;
 
             try {
-                const response = await fetch(`/conversations/${currentConversationId}/message`, {
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || ''}/conversations/${currentConversationId}/message`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1474,7 +1474,7 @@
             // Auto-create conversation if none exists
             if (!currentConversationId && currentUser) {
                 try {
-                    const response = await fetch('/conversations', {
+                    const response = await fetch(`${window.API_CONFIG?.BASE_URL || ''}/conversations`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: currentUser.uid })
@@ -1946,7 +1946,7 @@
             const container = document.getElementById('library-content');
 
             try {
-                const res = await fetch(`/favorites?user_id=${currentUser.uid}`);
+                const res = await fetch(`${window.API_CONFIG?.BASE_URL || ''}/favorites?user_id=${currentUser.uid}`);
                 const data = await res.json();
 
                 if (data.success) {
@@ -2239,7 +2239,7 @@
             }
 
             if (now.getHours() >= 6 && now.getHours() <= 10) {
-                const response = await fetch('/morning-checkin', {
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || ''}/morning-checkin`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId })
