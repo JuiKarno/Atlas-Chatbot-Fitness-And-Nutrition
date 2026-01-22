@@ -1,0 +1,8 @@
+# Render Static Site Configuration
+# This file tells Render how to handle routing for the single-page application
+
+# Redirect all requests to chat.html (the main app)
+/*    /chat.html   200
+
+# Root goes to index (login page)
+/     /index.html  200

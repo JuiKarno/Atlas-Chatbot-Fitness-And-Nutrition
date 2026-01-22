@@ -19,8 +19,9 @@ class SecurityConfig:
     # Flask Secret Key - MUST be set in environment
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', None)
     
-    # CORS Configuration - Set your production domain
-    ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5000').split(',')
+    # CORS Configuration - Set your production domains (comma-separated)
+    # Default allows localhost for development. Update with your Render frontend URL in production.
+    ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5000,http://127.0.0.1:5000').split(',')
     
     # Rate Limiting Configuration
     RATE_LIMIT_DEFAULT = "100 per minute"

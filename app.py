@@ -36,21 +36,42 @@ from core.response_formatter import (
 from core.calculator import calculate_bmi, calculate_target_calories
 
 # --- FIREBASE INIT ---
+import json
+
 if not firebase_admin._apps:
     key_path = Config.FIREBASE_CREDENTIALS if hasattr(Config, 'FIREBASE_CREDENTIALS') else 'serviceAccountKey.json'
-    if os.path.exists(key_path):
+    
+    # Option 1: Load from environment variable (Railway deployment)
+    firebase_json = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
+    if firebase_json:
+        try:
+            service_account_info = json.loads(firebase_json)
+            cred = credentials.Certificate(service_account_info)
+            firebase_admin.initialize_app(cred)
+            print("Firebase initialized from environment variable.")
+        except json.JSONDecodeError as e:
+            print(f"Error parsing FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
+    # Option 2: Load from file (local/Render deployment)
+    elif os.path.exists(key_path):
         cred = credentials.Certificate(key_path)
         firebase_admin.initialize_app(cred)
+        print("Firebase initialized from serviceAccountKey.json file.")
     else:
-        print("Warning: serviceAccountKey.json not found.")
+        print("Warning: No Firebase credentials found. Set FIREBASE_SERVICE_ACCOUNT_JSON env var or provide serviceAccountKey.json")
 
 db_client = firestore.client() if firebase_admin._apps else None
 
 app = Flask(__name__)
 app.secret_key = SecurityConfig.SECRET_KEY
 
-# CORS Configuration - restrict to allowed origins in production
-CORS(app, origins=SecurityConfig.ALLOWED_ORIGINS, supports_credentials=True)
+# CORS Configuration - allow frontend from different domain (Render)
+# In production, ALLOWED_ORIGINS env var should be set to your Render frontend URL
+CORS(app, 
+     origins=SecurityConfig.ALLOWED_ORIGINS,
+     supports_credentials=True,
+     allow_headers=['Content-Type', 'Authorization'],
+     expose_headers=['Content-Type'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 # Rate Limiting
 limiter = Limiter(
@@ -76,13 +97,19 @@ user_manager = UserManager(key_path)
 
 # --- ROUTES ---
 @app.route('/')
-def login_page():
-    return render_template('auth.html')
+def health_check():
+    """Health check endpoint for Railway"""
+    return jsonify({
+        "status": "healthy",
+        "service": "Atlas Backend API",
+        "version": "2.0"
+    }), 200
 
 
-@app.route('/chat')
-def chat_page():
-    return render_template('chatbot.html')
+@app.route('/health')
+def health():
+    """Alternative health check endpoint"""
+    return jsonify({"status": "ok"}), 200
 
 
 @app.route('/api/firebase-config')

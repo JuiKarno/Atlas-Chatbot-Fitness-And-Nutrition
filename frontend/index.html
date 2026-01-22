@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atlas - Login & Signup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/static/atlasIcon.png">
+    <link rel="apple-touch-icon" href="/static/atlasIcon.png">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Backend API Configuration -->
+    <script src="config.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Smooth Fade In */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Logo Bounce Animation */
+        .logo-bounce {
+            animation: logoBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes logoBounce {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-12px) scale(1.02);
+            }
+        }
+
+        /* Logo Glow Effect */
+        .logo-glow {
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 30px rgba(255, 255, 255, 0.2), 0 0 60px rgba(193, 18, 31, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 50px rgba(255, 255, 255, 0.4), 0 0 80px rgba(193, 18, 31, 0.5);
+            }
+        }
+
+        /* Custom Atlas Red Gradient */
+        .atlas-gradient {
+            background: linear-gradient(135deg, #6b0d13 0%, #8b0e16 25%, #c1121f 75%, #d4343f 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease infinite;
+        }
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+        }
+
+        /* Input Ring Color */
+        .input-field {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #c1121f;
+            box-shadow: 0 0 0 4px rgba(193, 18, 31, 0.15), 0 4px 20px rgba(193, 18, 31, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Button Glow */
+        .btn-primary {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(193, 18, 31, 0.4);
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 0.1;
+            }
+
+            25% {
+                transform: translateY(-30px) translateX(20px) rotate(90deg);
+                opacity: 0.3;
+            }
+
+            50% {
+                transform: translateY(-15px) translateX(-10px) rotate(180deg);
+                opacity: 0.2;
+            }
+
+            75% {
+                transform: translateY(15px) translateX(15px) rotate(270deg);
+                opacity: 0.3;
+            }
+        }
+
+        /* Section title gradient */
+        .section-title {
+            background: linear-gradient(135deg, #ffffff 0%, #f0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Scrollbar styling for about section */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Staggered animation for list items */
+        .stagger-1 {
+            animation-delay: 0.1s;
+        }
+
+        .stagger-2 {
+            animation-delay: 0.2s;
+        }
+
+        .stagger-3 {
+            animation-delay: 0.3s;
+        }
+
+        .stagger-4 {
+            animation-delay: 0.4s;
+        }
+
+        .slide-up {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUp 0.6s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Toggle pill animation */
+        .toggle-bg {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Capability card hover */
+        .capability-card {
+            transition: all 0.3s ease;
+        }
+
+        .capability-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        /* Pulse ring */
+        .pulse-ring {
+            animation: pulseRing 2s infinite;
+        }
+
+        @keyframes pulseRing {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 h-screen w-full flex overflow-hidden">
+
+    <!-- LEFT SIDE: Branding & About Atlas -->
+    <div class="hidden lg:flex w-1/2 atlas-gradient text-white flex-col p-10 relative overflow-hidden">
+
+        <!-- Floating Particles -->
+        <div class="particle w-32 h-32 top-10 right-20" style="animation-delay: 0s;"></div>
+        <div class="particle w-24 h-24 top-1/3 right-1/4" style="animation-delay: 2s;"></div>
+        <div class="particle w-40 h-40 bottom-20 left-10" style="animation-delay: 4s;"></div>
+        <div class="particle w-20 h-20 bottom-1/3 right-10" style="animation-delay: 6s;"></div>
+
+        <!-- Abstract Decorations -->
+        <div
+            class="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl">
+        </div>
+        <div
+            class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-black opacity-10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl">
+        </div>
+        <div class="absolute top-1/2 right-0 w-64 h-64 bg-red-300 opacity-10 rounded-full translate-x-1/2 blur-3xl">
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar z-10 pr-2">
+
+            <!-- Brand Header with Large Bouncing Logo -->
+            <div class="text-center mb-10">
+                <div class="inline-block logo-bounce">
+                    <div
+                        class="w-36 h-36 bg-white/15 backdrop-blur-xl rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white/20 overflow-hidden logo-glow pulse-ring">
+                        <img src="/static/atlasIcon.png" alt="Atlas AI Logo" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <h1 class="text-5xl font-black tracking-tight mb-3 section-title">Atlas</h1>
+                <p class="text-lg text-red-100/90 max-w-sm mx-auto leading-relaxed font-medium">
+                    Your intelligent fitness companion that adapts to you
+                </p>
+            </div>
+
+            <!-- About Atlas Section -->
+            <div class="glass-card p-6 mb-6 slide-up stagger-1">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                        <i class="fas fa-robot text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">About Atlas</h3>
+                </div>
+                <p class="text-red-100/85 leading-relaxed text-sm">
+                    Atlas is an AI-powered fitness and nutrition chatbot designed to be your personal health companion.
+                    Using advanced machine learning, Atlas understands your unique fitness goals, body metrics, and
+                    preferences to provide personalized workout plans, nutrition guidance, and expert advice — all
+                    through natural conversation.
+                </p>
+            </div>
+
+            <!-- What Atlas Can Do -->
+            <div class="glass-card p-6 mb-6 slide-up stagger-2">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                        <i class="fas fa-bolt text-yellow-300"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">What Atlas Can Do</h3>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="capability-card flex items-start gap-4 p-3 rounded-xl">
+                        <div
+                            class="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shrink-0 shadow-lg">
+                            <i class="fas fa-dumbbell text-sm text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Personalized Workout Plans</h4>
+                            <p class="text-xs text-red-100/75 mt-0.5">Custom exercises based on your goals, fitness
+                                level, and available equipment</p>
+                        </div>
+                    </div>
+
+                    <div class="capability-card flex items-start gap-4 p-3 rounded-xl">
+                        <div
+                            class="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shrink-0 shadow-lg">
+                            <i class="fas fa-apple-alt text-sm text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Smart Nutrition Guidance</h4>
+                            <p class="text-xs text-red-100/75 mt-0.5">Meal suggestions and macro tracking tailored to
+                                your body stats</p>
+                        </div>
+                    </div>
+
+                    <div class="capability-card flex items-start gap-4 p-3 rounded-xl">
+                        <div
+                            class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0 shadow-lg">
+                            <i class="fas fa-sync-alt text-sm text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Instant Exercise Alternatives</h4>
+                            <p class="text-xs text-red-100/75 mt-0.5">Don't like an exercise? Get safe alternatives
+                                instantly</p>
+                        </div>
+                    </div>
+
+                    <div class="capability-card flex items-start gap-4 p-3 rounded-xl">
+                        <div
+                            class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shrink-0 shadow-lg">
+                            <i class="fas fa-shield-alt text-sm text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Safety-Aware Recommendations</h4>
+                            <p class="text-xs text-red-100/75 mt-0.5">Adapts to your injuries and medical conditions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How to Use Atlas -->
+            <div class="glass-card p-6 mb-6 slide-up stagger-3">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                        <i class="fas fa-book-open text-blue-300"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">How to Use Atlas</h3>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold shrink-0">
+                            1</div>
+                        <p class="text-sm text-red-100/85"><span class="text-white font-semibold">Create your
+                                account</span> — Sign up with email or Google</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold shrink-0">
+                            2</div>
+                        <p class="text-sm text-red-100/85"><span class="text-white font-semibold">Share your
+                                goals</span> — Tell Atlas about your fitness journey</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold shrink-0">
+                            3</div>
+                        <p class="text-sm text-red-100/85"><span class="text-white font-semibold">Chat naturally</span>
+                            — Ask questions like you would a trainer</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold shrink-0">
+                            4</div>
+                        <p class="text-sm text-red-100/85"><span class="text-white font-semibold">Get personalized
+                                guidance</span> — Receive tailored responses</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="z-10 pt-4 border-t border-white/10">
+            <div class="text-xs text-red-200/60 flex gap-4 items-center">
+                <span>&copy; 2025 Atlas Fitness AI</span>
+                <span>•</span>
+                <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+                <span>•</span>
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT SIDE: Auth Forms -->
+    <div
+        class="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-12 overflow-y-auto bg-gradient-to-br from-white to-gray-50 relative">
+
+        <!-- Subtle background pattern -->
+        <div class="absolute inset-0 opacity-[0.02]"
+            style="background-image: radial-gradient(#c1121f 1px, transparent 1px); background-size: 30px 30px;"></div>
+
+        <!-- Mobile Header with Bouncing Logo -->
+        <div class="lg:hidden text-center mb-8 fade-in">
+            <div class="inline-block logo-bounce">
+                <div
+                    class="w-28 h-28 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl flex items-center justify-center mx-auto mb-4 text-white shadow-2xl shadow-red-200 overflow-hidden logo-glow">
+                    <img src="/static/atlasIcon.png" alt="Atlas AI Logo" class="w-full h-full object-cover">
+                </div>
+            </div>
+            <h2 class="text-3xl font-black text-gray-900">Atlas</h2>
+            <p class="text-sm text-gray-500 mt-1">Your AI Fitness Companion</p>
+        </div>
+
+        <div class="w-full max-w-md fade-in relative z-10">
+
+            <!-- Welcome Text -->
+            <div class="text-center mb-8 hidden lg:block">
+                <h2 class="text-3xl font-black text-gray-900 mb-2">Welcome Back</h2>
+                <p class="text-gray-500">Sign in to continue your fitness journey</p>
+            </div>
+
+            <!-- Alert Box -->
+            <div id="alert-box" class="hidden mb-6 p-4 rounded-2xl text-sm font-medium shadow-lg"></div>
+
+            <!-- Toggle Switch -->
+            <div class="flex bg-gray-100 p-1.5 rounded-2xl mb-8 relative shadow-inner" id="toggle-container">
+                <div class="absolute inset-y-1.5 toggle-bg bg-white rounded-xl shadow-lg border border-gray-100"
+                    id="toggle-bg" style="width: 50%; left: 0.375rem;"></div>
+                <button onclick="toggleForm('login')"
+                    class="flex-1 py-3 text-sm font-bold z-10 transition-all duration-300 text-gray-900 rounded-xl"
+                    id="btn-login">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Sign In
+                </button>
+                <button onclick="toggleForm('signup')"
+                    class="flex-1 py-3 text-sm font-bold z-10 transition-all duration-300 text-gray-400 rounded-xl"
+                    id="btn-signup">
+                    <i class="fas fa-user-plus mr-2"></i>Create Account
+                </button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form id="login-form" class="space-y-5" onsubmit="handleLogin(event)">
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Email Address</label>
+                    <div class="relative group">
+                        <i
+                            class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors"></i>
+                        <input type="email" id="login-email" required placeholder="you@example.com"
+                            class="input-field w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-100 bg-white text-gray-800 placeholder-gray-400 font-medium">
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Password</label>
+                    <div class="relative group">
+                        <i
+                            class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors"></i>
+                        <input type="password" id="login-password" required placeholder="••••••••"
+                            class="input-field w-full pl-12 pr-14 py-4 rounded-2xl border-2 border-gray-100 bg-white text-gray-800 placeholder-gray-400 font-medium">
+                        <button type="button" onclick="togglePassword('login-password', this)"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none p-1">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-login"
+                    class="btn-primary w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-red-100 flex justify-center items-center gap-3">
+                    <span>Sign In</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <!-- SIGNUP FORM -->
+            <form id="signup-form" class="space-y-5 hidden" onsubmit="handleSignup(event)">
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Full Name</label>
+                    <div class="relative group">
+                        <i
+                            class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors"></i>
+                        <input type="text" id="signup-name" required placeholder="John Doe"
+                            class="input-field w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-100 bg-white text-gray-800 placeholder-gray-400 font-medium">
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Email Address</label>
+                    <div class="relative group">
+                        <i
+                            class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors"></i>
+                        <input type="email" id="signup-email" required placeholder="you@example.com"
+                            class="input-field w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-100 bg-white text-gray-800 placeholder-gray-400 font-medium">
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Password</label>
+                    <div class="relative group">
+                        <i
+                            class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors"></i>
+                        <input type="password" id="signup-password" required placeholder="Create a password"
+                            class="input-field w-full pl-12 pr-14 py-4 rounded-2xl border-2 border-gray-100 bg-white text-gray-800 placeholder-gray-400 font-medium">
+                        <button type="button" onclick="togglePassword('signup-password', this)"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none p-1">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" id="submit-signup"
+                    class="btn-primary w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-red-100 flex justify-center items-center gap-3">
+                    <span>Create Account</span>
+                    <i class="fas fa-rocket"></i>
+                </button>
+            </form>
+
+            <!-- Social Login Divider -->
+            <div class="relative mt-8 mb-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t-2 border-gray-100"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-4 bg-gradient-to-br from-white to-gray-50 text-gray-400 font-medium">Or continue
+                        with</span>
+                </div>
+            </div>
+
+            <!-- Google Button -->
+            <button onclick="handleGoogleLogin()"
+                class="w-full bg-white text-gray-700 font-bold py-4 rounded-2xl border-2 border-gray-100 hover:border-gray-200 hover:bg-gray-50 hover:shadow-lg transition-all flex items-center justify-center gap-3 group">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    class="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google">
+                <span>Sign in with Google</span>
+            </button>
+
+            <!-- Loading Overlay -->
+            <div id="loading-overlay"
+                class="fixed inset-0 bg-white/90 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center">
+                <div class="relative">
+                    <div class="w-16 h-16 border-4 border-red-100 border-t-red-600 rounded-full animate-spin"></div>
+                    <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-red-400 rounded-full animate-spin"
+                        style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                </div>
+                <p class="mt-6 text-lg font-bold text-gray-700">Authenticating...</p>
+                <p class="text-sm text-gray-400 mt-1">Please wait a moment</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ================= CONFIGURATION =================
+        // Firebase config is now loaded from backend to avoid exposing in source
+        let auth, db;
+
+        async function initFirebase() {
+            try {
+                // Use backend URL from config.js
+                const backendURL = window.API_CONFIG?.BASE_URL || '';
+                const response = await fetch(`${backendURL}/api/firebase-config`);
+                const firebaseConfig = await response.json();
+
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                auth = firebase.auth();
+                db = firebase.firestore();
+            } catch (error) {
+                console.error('Failed to load Firebase config:', error);
+                showAlert('Failed to initialize. Please refresh the page.', 'error');
+            }
+        }
+
+        // Initialize Firebase on page load
+        initFirebase();
+
+        // ================= UI LOGIC =================
+
+        // Toggle Password Visibility
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            const icon = button.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function toggleForm(type) {
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+            const bg = document.getElementById('toggle-bg');
+            const btnLogin = document.getElementById('btn-login');
+            const btnSignup = document.getElementById('btn-signup');
+            const welcomeText = document.querySelector('.lg\\:block h2');
+            const welcomeSubtext = document.querySelector('.lg\\:block p');
+
+            // Reset inputs
+            document.querySelectorAll('input').forEach(i => i.value = '');
+            hideAlert();
+
+            if (type === 'login') {
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+
+                // Animate Toggle
+                bg.style.left = `${btnLogin.offsetLeft}px`;
+                bg.style.width = `${btnLogin.offsetWidth}px`;
+
+                btnLogin.classList.remove('text-gray-400');
+                btnLogin.classList.add('text-gray-900');
+                btnSignup.classList.remove('text-gray-900');
+                btnSignup.classList.add('text-gray-400');
+
+                // Update welcome text
+                if (welcomeText) welcomeText.textContent = 'Welcome Back';
+                if (welcomeSubtext) welcomeSubtext.textContent = 'Sign in to continue your fitness journey';
+            } else {
+                loginForm.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+
+                // Animate Toggle
+                bg.style.left = `${btnSignup.offsetLeft}px`;
+                bg.style.width = `${btnSignup.offsetWidth}px`;
+
+                btnLogin.classList.remove('text-gray-900');
+                btnLogin.classList.add('text-gray-400');
+                btnSignup.classList.remove('text-gray-400');
+                btnSignup.classList.add('text-gray-900');
+
+                // Update welcome text
+                if (welcomeText) welcomeText.textContent = 'Get Started';
+                if (welcomeSubtext) welcomeSubtext.textContent = 'Create an account to begin your journey';
+            }
+        }
+
+        // Initialize toggle position on load
+        window.addEventListener('DOMContentLoaded', () => {
+            toggleForm('login');
+        });
+
+        // Update toggle position on resize
+        window.addEventListener('resize', () => {
+            const loginForm = document.getElementById('login-form');
+            if (!loginForm.classList.contains('hidden')) {
+                toggleForm('login');
+            } else {
+                toggleForm('signup');
+            }
+        });
+
+
+        // ================= AUTH LOGIC =================
+
+        // Login
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            setLoading(true);
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                window.location.href = 'chat.html';
+            } catch (error) {
+                showAlert(getErrorMessage(error.code), 'error');
+                setLoading(false);
+            }
+        }
+
+        // Signup
+        async function handleSignup(e) {
+            e.preventDefault();
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            if (name.length < 2) {
+                showAlert("Please enter a valid name.", "error");
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                await createUserProfile(userCredential.user, name);
+                window.location.href = 'chat.html';
+            } catch (error) {
+                showAlert(getErrorMessage(error.code), 'error');
+                setLoading(false);
+            }
+        }
+
+        // Google Login
+        async function handleGoogleLogin() {
+            setLoading(true);
+            const provider = new firebase.auth.GoogleAuthProvider();
+            // Force the account selection prompt every time
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
+            try {
+                const result = await auth.signInWithPopup(provider);
+                const user = result.user;
+
+                // Check if user exists in Firestore
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists) {
+                    await createUserProfile(user, user.displayName || "User");
+                }
+                window.location.href = 'chat.html';
+            } catch (error) {
+                console.error(error);
+                showAlert(getErrorMessage(error.code) || error.message, 'error');
+                setLoading(false);
+            }
+        }
+
+        // Helper: Create Profile in Firestore
+        async function createUserProfile(user, name) {
+            await db.collection('users').doc(user.uid).set({
+                name: name,
+                email: user.email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                fitness_level: 'Beginner',
+                goal: 'General Fitness',
+                weight: null,
+                height: null,
+                age: null,
+                medical_conditions: ''
+            }, { merge: true });
+        }
+
+        // ================= HELPERS =================
+        function setLoading(isLoading) {
+            const overlay = document.getElementById('loading-overlay');
+            if (isLoading) overlay.classList.remove('hidden');
+            else overlay.classList.add('hidden');
+        }
+
+        function showAlert(msg, type) {
+            const box = document.getElementById('alert-box');
+            box.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'bg-green-50', 'text-green-600');
+
+            if (type === 'error') {
+                box.classList.add('bg-red-50', 'text-red-600', 'border-2', 'border-red-100');
+                box.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i> ${msg}`;
+            } else {
+                box.classList.add('bg-green-50', 'text-green-600', 'border-2', 'border-green-100');
+                box.innerHTML = `<i class="fas fa-check-circle mr-2"></i> ${msg}`;
+            }
+        }
+
+        function hideAlert() {
+            document.getElementById('alert-box').classList.add('hidden');
+        }
+
+        function getErrorMessage(code) {
+            switch (code) {
+                case 'auth/email-already-in-use': return "That email is already registered.";
+                case 'auth/invalid-email': return "Please enter a valid email address.";
+                case 'auth/weak-password': return "Password should be at least 6 characters.";
+                case 'auth/user-not-found': return "No account found with this email.";
+                case 'auth/wrong-password': return "Incorrect password.";
+                case 'auth/popup-closed-by-user': return "Sign in cancelled.";
+                default: return "An error occurred. Please try again.";
+            }
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Optional: Redirect if already logged in
+                // window.location.href = '/chat';
+            }
+        });
+
+    </script>
+</body>
+
+</html>
