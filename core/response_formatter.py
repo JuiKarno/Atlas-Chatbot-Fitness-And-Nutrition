@@ -257,7 +257,7 @@ def format_progress_report(logs, log_type):
     html += "</div></div>"
     return html
 
-def format_log_confirmation(intent, entities):
+def format_log_confirmation(log_type, data):
     """
     Formats a confirmation message after logging weight/nutrition/workout.
     """
@@ -290,7 +290,7 @@ def format_log_confirmation(intent, entities):
     else:
         content = "Logged successfully!"
         title = "Success!"
-
+    
     return f"""
     <div class="bg-{color}-50 dark:bg-{color}-900/20 border border-{color}-200 dark:border-{color}-800 rounded-2xl p-5">
         <div class="flex items-center gap-4">
