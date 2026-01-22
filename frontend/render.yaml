@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: atlas-frontend
+    runtime: static
+    buildCommand: echo "No build needed"
+    staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
