@@ -1535,8 +1535,8 @@
                     }
 
                     // Suggestion Logic
-                    if (data.intent.includes('fitness')) renderSuggestions('fitness_drilldown', true);
-                    else if (data.intent.includes('nutrition')) renderSuggestions('nutrition_drilldown', true);
+                    if (data.intent && data.intent.includes('fitness')) renderSuggestions('fitness_drilldown', true);
+                    else if (data.intent && data.intent.includes('nutrition')) renderSuggestions('nutrition_drilldown', true);
                     else renderSuggestions('initial', true);
                 }
 
