@@ -1,9 +1,7 @@
 // Backend API Configuration
-// IMPORTANT: Update this URL after deploying to Railway!
+// Railway backend deployed successfully!
 window.API_CONFIG = {
-    // Replace this with your Railway backend URL after deployment
-    // Example: 'https://atlas-backend-production-xxxx.up.railway.app'
-    BASE_URL: 'REPLACE_WITH_YOUR_RAILWAY_URL'
+    BASE_URL: 'https://web-production-7418.up.railway.app'
 };
 
 // For local development, uncomment this:
