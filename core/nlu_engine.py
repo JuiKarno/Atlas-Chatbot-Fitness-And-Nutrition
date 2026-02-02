@@ -151,7 +151,8 @@ class SmartNLUEngine:
                     {"role": "user", "content": f"Context: {context_str}\nUser Message: {message}"}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.1
+                temperature=0.1,
+                max_tokens=1024
             )
             result = json.loads(response.choices[0].message.content)
 
@@ -213,7 +214,8 @@ class SmartNLUEngine:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": message}
                 ],
-                temperature=0.8
+                temperature=0.8,
+                max_tokens=1024
             )
             return response.choices[0].message.content
         except:
@@ -326,7 +328,8 @@ class SmartNLUEngine:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": message}
                 ],
-                temperature=0.7
+                temperature=0.7,
+                max_tokens=2048
             )
             content = response.choices[0].message.content
             if not content:
@@ -386,7 +389,8 @@ class SmartNLUEngine:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Generate recipe for: {food_name}"}
                 ],
-                temperature=0.5
+                temperature=0.5,
+                max_tokens=2048
             )
             return response.choices[0].message.content
         except Exception:
