@@ -136,8 +136,18 @@ class SmartNLUEngine:
         - "What's my calorie intake today?" → {"intent": "view_progress", "entities": {"progress_type": "nutrition"}}
         - "Track my progress" → {"intent": "view_progress", "entities": {"progress_type": "all"}}
 
+        ### NO EQUIPMENT / HOME WORKOUT EXAMPLES (IMPORTANT!)
+        - "I don't have any equipment" → {"intent": "add_preference", "entities": {"preferences": ["bodyweight"], "no_equipment": true}}
+        - "I workout at home" → {"intent": "add_preference", "entities": {"preferences": ["bodyweight"], "no_equipment": true}}
+        - "I don't have gym equipment" → {"intent": "add_preference", "entities": {"preferences": ["bodyweight"], "no_equipment": true}}
+        - "No gym, just home workouts" → {"intent": "add_preference", "entities": {"preferences": ["bodyweight"], "no_equipment": true}}
+        - "I only have my body, no weights" → {"intent": "add_preference", "entities": {"preferences": ["bodyweight"], "no_equipment": true}}
+        - "Give me exercises without equipment" → {"intent": "fitness_request", "entities": {"target": "General", "no_equipment": true}}
+        - "Bodyweight exercises for chest" → {"intent": "fitness_request", "entities": {"target": "Chest", "no_equipment": true}}
+        - "Home workout for legs" → {"intent": "fitness_request", "entities": {"target": "Legs", "no_equipment": true}}
+
         ### OUTPUT FORMAT (JSON ONLY)
-        {"intent": "string", "entities": {"target": "string or null", "preferences": [], "dislikes": [], "category": "string or null", "weight": "number or null", "calories": "number or null", "protein": "number or null", "carbs": "number or null", "fat": "number or null", "workout_name": "string or null", "progress_type": "weight|nutrition|workout|all or null"}}
+        {"intent": "string", "entities": {"target": "string or null", "preferences": [], "dislikes": [], "no_equipment": "boolean or null", "category": "string or null", "weight": "number or null", "calories": "number or null", "protein": "number or null", "carbs": "number or null", "fat": "number or null", "workout_name": "string or null", "progress_type": "weight|nutrition|workout|all or null"}}
         """
 
         try:

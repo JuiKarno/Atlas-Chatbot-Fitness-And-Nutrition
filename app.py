@@ -353,8 +353,14 @@ def chat_endpoint():
             likes = []
             dislikes = []
 
+        # --- HANDLE NO EQUIPMENT FLAG ---
+        no_equipment = session_data.get('no_equipment', False)
+        if entities.get('no_equipment'):
+            no_equipment = True
+            session_data['no_equipment'] = True
+
         # Debug log to verify preferences are being captured
-        print(f"[App] After processing - Likes: {likes}, Dislikes: {dislikes}")
+        print(f"[App] After processing - Likes: {likes}, Dislikes: {dislikes}, No Equipment: {no_equipment}")
 
         # Define health-related intents that require profile access
         health_intents = [
@@ -734,7 +740,8 @@ def chat_endpoint():
                 ignore_list=ignore_list,
                 top_k=3,
                 likes=likes,
-                dislikes=dislikes
+                dislikes=dislikes,
+                no_equipment=no_equipment
             )
             recs, warnings = SafetyValidator().filter_exercises_for_injuries(raw_recs,
                                                                              profile.get('medical_conditions', ''))

@@ -38,7 +38,7 @@ class ContentBasedRecommender:
         return f"{sets} Sets • {reps} Reps • {rest} Rest"
 
     def get_recommendations(self, user_profile, intent, target, ignore_list=[], extra_entities={}, top_k=3, likes=[],
-                            dislikes=[]):
+                            dislikes=[], no_equipment=False):
         """
         Main entry point for recommendations.
         """
@@ -49,11 +49,11 @@ class ContentBasedRecommender:
         clean_likes = [str(x).strip().lower() for x in likes if x]
         clean_dislikes = [str(x).strip().lower() for x in dislikes if x]
 
-        print(f"\n[Recommender] Target: {target}, Intent: {intent}")
+        print(f"\n[Recommender] Target: {target}, Intent: {intent}, No Equipment: {no_equipment}")
         print(f"   -> Likes: {clean_likes}, Dislikes: {clean_dislikes}")
 
         if intent in ['fitness_request', 'fitness_variation', 'fitness']:
-            return self._get_fitness_recs(user_profile, target, clean_ignore_list, top_k, clean_likes, clean_dislikes)
+            return self._get_fitness_recs(user_profile, target, clean_ignore_list, top_k, clean_likes, clean_dislikes, no_equipment)
         elif intent in ['nutrition_request', 'nutrition_variation', 'nutrition', 'diet', 'food']:
             return self._get_nutrition_recs(user_profile, target, clean_ignore_list, extra_entities, top_k, clean_likes,
                                             clean_dislikes)
@@ -129,7 +129,7 @@ class ContentBasedRecommender:
         return candidates
 
 
-    def _get_fitness_recs(self, user_profile, target, clean_ignore_list, top_k=3, likes=[], dislikes=[]):
+    def _get_fitness_recs(self, user_profile, target, clean_ignore_list, top_k=3, likes=[], dislikes=[], no_equipment=False):
         try:
             user_level = user_profile.get('fitness_level', 'Intermediate')
 
@@ -142,6 +142,9 @@ class ContentBasedRecommender:
 
             candidates = []
             seen_titles = set(clean_ignore_list)
+            
+            # Equipment types that are considered "bodyweight" or "no equipment"
+            bodyweight_equipment = ['body only', 'bodyweight', 'body weight', 'none', 'other', '']
 
             for lvl in search_levels:
                 level_cands = self._fetch_candidates(lvl, target, list(seen_titles), dislikes, min_count=top_k * 3)
@@ -149,6 +152,11 @@ class ContentBasedRecommender:
                 for cand in level_cands:
                     title_raw = cand.get('Title', '')
                     title_norm = str(title_raw).strip().lower()
+                    equipment = str(cand.get('Equipment', '')).strip().lower()
+                    
+                    # Filter for no equipment if flag is set
+                    if no_equipment and equipment not in bodyweight_equipment:
+                        continue
 
                     if title_norm and title_norm not in seen_titles:
                         candidates.append(cand)
@@ -166,6 +174,10 @@ class ContentBasedRecommender:
                     desc = str(d.get('Desc', '')).strip().lower()
                     ex_type = str(d.get('Type', '')).strip().lower()
                     searchable_text = f"{title_norm} {equipment} {ex_type} {desc}"
+                    
+                    # Filter for no equipment if flag is set
+                    if no_equipment and equipment not in bodyweight_equipment:
+                        continue
                     
                     if any(bad in searchable_text for bad in dislikes): continue
                     if title_norm not in seen_titles:
