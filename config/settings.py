@@ -7,7 +7,7 @@ load_dotenv()
 class Config:
     # OpenRouter API Configuration (loaded from .env)
     OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
-    AI_MODEL = os.getenv('OPENROUTER_MODEL', 'xiaomi/mimo-v2-flash:free')
+    AI_MODEL = os.getenv('OPENROUTER_MODEL', 'qwen/qwen3-4b:free')
     OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
     
     # Legacy Groq key (kept for reference)
