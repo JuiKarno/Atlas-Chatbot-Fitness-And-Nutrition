@@ -7,7 +7,7 @@ load_dotenv()
 class Config:
     # OpenRouter API Configuration (loaded from .env)
     OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
-    AI_MODEL = os.getenv('OPENROUTER_MODEL', 'qwen/qwen3-4b:free')
+    AI_MODEL = os.getenv('OPENROUTER_MODEL', 'mistralai/mistral-small-3.1-24b-instruct:free')
     OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
     
     # Legacy Groq key (kept for reference)
