@@ -231,7 +231,22 @@ class ContentBasedRecommender:
                     # 2. Calculate Preference Score (0 to 1)
                     # Cosine score is our baseline preference from TF-IDF query
                     # Additionally boost if user specifically "liked" this item
-                    preference_boost = 0.3 if any(good in title for good in likes) else 0
+                    
+                    # Get equipment field for matching
+                    equipment = str(row.get('Equipment', '')).lower()
+                    
+                    # Check if any preference matches title OR equipment (with fuzzy matching for plurals)
+                    has_preference_match = any(
+                        good in title or good in equipment or  # Direct match
+                        good.rstrip('s') in title or good.rstrip('s') in equipment  # Singular form (dumbbells -> dumbbell)
+                        for good in likes
+                    )
+                    
+                    # Debug logging for preference matching
+                    if likes:
+                        print(f"[Recommender] Preference check - Title: '{title[:30]}', Equipment: '{equipment}', Likes: {likes}, Match: {has_preference_match}")
+                    
+                    preference_boost = 0.3 if has_preference_match else 0
                     user_pref = min(1.0, cosine_score + preference_boost)
 
                     # 3. Final Formula: (Eff * 0.7) + (Pref * 0.3)
@@ -357,7 +372,17 @@ class ContentBasedRecommender:
                     effectiveness = min(1.0, effectiveness)
 
                     # 2. Preference Score
-                    preference_boost = 0.3 if any(good in name for good in likes) else 0
+                    # Check if any preference matches food name (with fuzzy matching for plurals)
+                    has_preference_match = any(
+                        good in name or good.rstrip('s') in name  # Direct or singular match
+                        for good in likes
+                    )
+                    
+                    # Debug logging for nutrition preference matching
+                    if likes:
+                        print(f"[Recommender] Nutrition preference check - Name: '{name[:30]}', Likes: {likes}, Match: {has_preference_match}")
+                    
+                    preference_boost = 0.3 if has_preference_match else 0
                     user_pref = min(1.0, cosine_score + preference_boost)
 
                     # 3. Final Formula
