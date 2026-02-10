@@ -175,6 +175,11 @@ class SmartNLUEngine:
             if not result.get('intent'):
                 result['intent'] = 'general_chat'
 
+            # Debug log for preference detection
+            intent = result.get('intent')
+            if intent in ['add_preference', 'add_dislike']:
+                print(f"[NLU] Preference detected - Intent: {intent}, Entities: {entities}")
+            
             return result
 
         except Exception as e:
@@ -256,10 +261,22 @@ class SmartNLUEngine:
 
         # --- 2. PREFERENCE CONFIRMATION ---
         if intent in ['add_preference', 'add_dislike']:
-            return f"Got it, {name}. I've updated your preferences. I'll keep them in mind! What would you like to explore now?"
+            action = "added to your preferences" if intent == 'add_preference' else "added to your dislikes"
+            return f"""
+        <div class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800">
+            <h4 class="font-bold text-emerald-700 dark:text-emerald-300 mb-2"><i class="fas fa-check-circle mr-2"></i>Preferences Updated!</h4>
+            <p class="text-sm text-emerald-600 dark:text-emerald-400">Got it, {name}! I've {action} and will keep them in mind for future recommendations.</p>
+            <p class="text-xs text-emerald-500 dark:text-emerald-500 mt-2"><i class="fas fa-lightbulb mr-1"></i><b>Tip:</b> Use specific names like "I like dumbbells" or "I don't like burpees" for best results!</p>
+        </div>
+        """
 
         if intent == 'clear_preferences':
-            return f"No problem, {name}. I've cleared all your likes and dislikes. We're starting clean!"
+            return f"""
+        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+            <h4 class="font-bold text-blue-700 dark:text-blue-300 mb-2"><i class="fas fa-redo mr-2"></i>Preferences Reset</h4>
+            <p class="text-sm text-blue-600 dark:text-blue-400">No problem, {name}. I've cleared all your likes and dislikes. We're starting fresh!</p>
+        </div>
+        """
 
         # Construct full context string safely
         user_context = f"""
