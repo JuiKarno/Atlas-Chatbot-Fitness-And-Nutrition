@@ -66,7 +66,7 @@ def format_exercise_card(recs, intent, target):
                     <a href="https://www.youtube.com/results?search_query={yt_query}" target="_blank" class="flex-1 text-center py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
                         <i class="fab fa-youtube text-red-500 mr-1"></i> Watch
                     </a>
-                    <button onclick="sendQuick('Explain form for {r['Title']}')" class="flex-[2] text-center py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-500/20 hover:bg-brand-700 hover:shadow-brand-500/40 transition-all transform hover:-translate-y-0.5">
+                    <button onclick="sendQuick('How to do {r['Title']}')" class="flex-[2] text-center py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-500/20 hover:bg-brand-700 hover:shadow-brand-500/40 transition-all transform hover:-translate-y-0.5">
                         Explain Details
                     </button>
                 </div>
