@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 # Security imports
@@ -874,7 +874,7 @@ def create_conversation():
             return jsonify({"success": False})
 
         # Create new conversation document
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         conv_ref = db_client.collection('users').document(user_id) \
             .collection('conversations').document()
 
@@ -976,7 +976,7 @@ def save_message(conversation_id):
         new_message = {
             'role': role,
             'content': content,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
         messages.append(new_message)
 
@@ -989,7 +989,7 @@ def save_message(conversation_id):
         # Update conversation
         conv_ref.update({
             'messages': messages,
-            'updated_at': datetime.now(),
+            'updated_at': datetime.now(timezone.utc),
             'title': title
         })
 
